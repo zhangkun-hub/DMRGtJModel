@@ -22,6 +22,7 @@ struct CaseParams : public CaseParamsParserBasic {
     t2 = ParseDouble("t2");
     J = ParseDouble("J");
     J2 = ParseDouble("J2");
+    phi = ParseDouble("phi");
     Sweeps = ParseInt("Sweeps");
     Dmin = ParseInt("Dmin");
     Dmax = ParseInt("Dmax");
@@ -29,7 +30,7 @@ struct CaseParams : public CaseParamsParserBasic {
     LanczErr = ParseDouble("LanczErr");
     MaxLanczIter = ParseInt("MaxLanczIter");
     Threads = ParseInt("Threads");
-    Perturbation=ParseDouble("Perturbation");
+    Perturbation = ParseDouble("Perturbation");
     wavelength = ParseDouble("wavelength");
     noise = ParseDoubleVec("noise");
   }
@@ -56,35 +57,37 @@ struct CaseParams : public CaseParamsParserBasic {
 
 };
 
-
-
 struct tJModelParamters {
  public :
   tJModelParamters(const double t,
                    const double t2,
                    const double J,
-                   const double J2
-  ) : t(t), t2(t2), J(J), J2(J2) {}
+                   const double J2,
+                   const double phi
+  ) : t(t), t2(t2), J(J), J2(J2), phi(phi) {}
 
-  tJModelParamters(CaseParams& params) :
+  tJModelParamters(CaseParams &params) :
       tJModelParamters(params.t,
-                        params.t2,
-                        params.J,
-                        params.J2
+                       params.t2,
+                       params.J,
+                       params.J2,
+                       params.phi
       ) {}
 
-  inline void Print(void){
+  inline void Print(void) {
     using std::cout;
     cout << " ****** tJV Model Parameter List ****** " << "\n";
-    cout << "t  = " << t << "\n";
-    cout << "t2 = " << t2 << "\n";
-    cout << "J  = " << J  << "\n";
-    cout << "J2 = " << J2 << "\n";
+    cout << "NN hopping t  = " << t << "\n";
+    cout << "NNN hopping t2 = " << t2 << "\n";
+    cout << "NN super-exchange J  = " << J << "\n";
+    cout << "NNN super-exchangeJ2 = " << J2 << "\n";
+    cout << "Twist angle phi = " << phi << "\n";
   }
 
   double t;
   double t2;
   double J;
   double J2;
+  double phi;
 };
 #endif //TJMODEL_SRC_PARAMS_CASE_H

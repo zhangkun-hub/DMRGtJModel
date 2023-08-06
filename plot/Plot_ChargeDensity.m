@@ -1,13 +1,13 @@
 %
 
-Lx=24; Ly=8;
+Lx=24; Ly=6;
 t = 3;
-t2 = -0.6;
+t2 = 0;
 J = 1;
-J2 = 0.04;
-Numhole = 32;
+J2 = 0;
+Numhole = 6;
 
-Dset = [15000];
+Dset = [10000];
 D = Dset(1);
 %nftJ8x24t2-0.6J20.04Hole32D15000.json
 FileNamePostfix=['tJ',num2str(Ly),'x',num2str(Lx),'t2', num2str(t2),'J2', num2str(J2), 'Hole',num2str(Numhole),'D',num2str(D),'.json'];

@@ -3,7 +3,7 @@
 * Author: Hao-Xin Wang <wanghx18@mails.tsinghua.edu.cn>
 * Creation Date: 2023-04-1
 *
-* Description: Single processor DMRG for t-J model with t_2 and J_2
+* Description: Single processor DMRG for t-J model with t_2 and J_2, with initial state the Nagosa state
 */
 
 
@@ -62,14 +62,12 @@ FiniteMPST mps(sites);
     site_number_per_hole = N+99;
   }
 
-  int sz_label = 0;
   srand((unsigned)time(NULL));
   for (size_t i = 0; i < N; ++i) {
     if ( i%site_number_per_hole == site_number_per_hole-1){
       stat_labs[i] = 2;}
     else {
-      stat_labs[i] = sz_label%2;
-      sz_label++;
+      stat_labs[i] = 0;
     }
   }
 

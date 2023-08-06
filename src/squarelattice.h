@@ -29,7 +29,12 @@ class SquareLattice {
   size_t Lx;
   size_t N; //total site number
   vector<Link> nearest_neighbor_links;      //ordered by smaller number site to larger number site
+  vector<Link> direct_nn_links;
+  vector<Link> wind_nn_links;
   vector<Link> next_nearest_neighbor_links; //ordered by smaller number site to larger number site
+  vector<Link> direct_nnn_links;
+  vector<Link> wind_nnn_links_1;
+  vector<Link> wind_nnn_links_2;
 };
 
 /** Two-leg ladder
@@ -73,6 +78,28 @@ SquareLadder::SquareLadder(const size_t Lx) : SquareLattice(2, Lx) {
   }
 }
 
+///< 1D chain
+class Chain : public SquareLattice {
+ public:
+  Chain(void) = default;
+  Chain(const size_t Lx);
+};
+
+Chain::Chain(const size_t Lx) : SquareLattice(1, Lx) {
+  nearest_neighbor_links.reserve(N);
+  for (size_t i = 0; i < N; ++i) {
+    const size_t x = N; //x coordinate of site i
+    const size_t Tx = ((x + 1) % Lx); //x-directional translation site of site i
+
+    nearest_neighbor_links.push_back(Link{min(i, Tx), max(i, Tx)});
+    if (x < Lx - 1) {
+      direct_nn_links.push_back(Link{i, Tx});
+    } else {
+      wind_nn_links.push_back(Link{Tx, i});
+    }
+  }
+}
+
 /** Square lattice cylinder
  *
  *  example: Ly = 4, Lx = 8, PBC on y-direction and OBC on x-direction
@@ -109,8 +136,14 @@ SquareCylinder::SquareCylinder(const size_t Ly, const size_t Lx) :
     const size_t Ty = (y + 1) % Ly + Ly * x;   //y-directional translation site of site i
 
     nearest_neighbor_links.push_back(Link{min(i, Ty), max(i, Ty)});
+    if (y < Ly - 1) {
+      direct_nn_links.push_back(Link{i, Ty});
+    } else {
+      wind_nn_links.push_back(Link{Ty, i});
+    }
     if (x < Lx - 1) {
       nearest_neighbor_links.push_back(Link{i, Tx});
+      direct_nn_links.push_back(Link{i, Tx});
     }
   }
 
@@ -123,6 +156,16 @@ SquareCylinder::SquareCylinder(const size_t Ly, const size_t Lx) :
     if (x < Lx - 1) {
       next_nearest_neighbor_links.push_back(Link{i, Txy});
       next_nearest_neighbor_links.push_back(Link{i, Txy2});
+      if (y < Ly - 1 && y > 0) {
+        direct_nnn_links.push_back(Link{i, Txy});
+        direct_nnn_links.push_back(Link{i, Txy2});
+      } else if (y == 0) {
+        direct_nnn_links.push_back(Link{i, Txy});
+        wind_nnn_links_2.push_back(Link{i, Txy2});
+      } else { //y == Ly -1
+        wind_nnn_links_1.push_back(Link{i, Txy});
+        direct_nnn_links.push_back(Link{i, Txy2});
+      }
     }
   }
 }

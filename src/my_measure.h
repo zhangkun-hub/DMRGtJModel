@@ -646,7 +646,7 @@ inline MeasuRes<TenElemT> MeasureElectronPhonon4PointFunction(
     FiniteMPS<TenElemT, QNT> &mps,
     const std::vector<GQTensor<TenElemT, QNT>> &phys_ops,
     const std::vector<std::vector<size_t>> &sites_set,
-    const size_t pesudosite_num,
+    const size_t Ly,
     const std::string &res_file_basename
 ) {
   assert(mps.empty());
@@ -654,8 +654,6 @@ inline MeasuRes<TenElemT> MeasureElectronPhonon4PointFunction(
   for (size_t i = 0; i <= left_boundary + 1; i++) {
     mps.dealloc(i);
   }
-  const size_t Ly = 4; //change here when Ly of system changes
-  std::cout << "note: Ly = " << Ly << std::endl;
   assert(phys_ops.size() == 4);
   assert(sites_set.size() % Ly == 0);
   for (size_t i = 0; i < sites_set.size(); i++) {
@@ -687,7 +685,7 @@ inline MeasuRes<TenElemT> MeasureElectronPhonon4PointFunction(
     auto measure_res_group = MeasureElectronPhonon4PointFunctionGroup(mps,
                                                                       phys_ops,
                                                                       sites_set_group,
-                                                                      pesudosite_num,
+                                                                      Ly,
                                                                       left_boundary + 1
     );
     measure_res.insert(measure_res.end(), measure_res_group.begin(), measure_res_group.end());
@@ -726,18 +724,13 @@ inline MeasuRes<TenElemT> MeasureElectronPhonon4PointFunctionGroup(
     FiniteMPS<TenElemT, QNT> &mps, //input and output mps is empty
     const std::vector<GQTensor<TenElemT, QNT>> &phys_ops,
     const std::vector<std::vector<size_t>> &sites_set,
-    const size_t pesudosite_num,//usually called Np in hxwang's program
+    const size_t Ly,//usually called Np in hxwang's program
     const size_t initial_center
 ) {
   assert(mps.empty());
   std::string mps_path = kMpsPath;
   const size_t site1 = sites_set[0][0];
   const size_t site2 = sites_set[0][1];
-//  const size_t fermion_op_dim = mps[site1].GetIndexes()[1].dim();// should be 4 for SSH-Hubbard
-  assert(pesudosite_num > 0);
-//  const size_t bonson_op_dim = mps[site1+1].GetIndexes()[1].dim();// usually should be 2;
-  const size_t fermion_op_dim(4), bonson_op_dim(2);
-  assert(fermion_op_dim != bonson_op_dim);//we use dimension to differentiate boson site or fermion site
   using Tensor = GQTensor<TenElemT, QNT>;
 
   static bool is_f_initial = false;
@@ -748,10 +741,9 @@ inline MeasuRes<TenElemT> MeasureElectronPhonon4PointFunctionGroup(
     mps.dealloc(0);
     Index<QNT> index_in_fermion = InverseIndex(index_out_fermion);
     f = Tensor({index_in_fermion, index_out_fermion});
-    f({0, 0}) = 1;
+    f({0, 0}) = -1;
     f({1, 1}) = -1;
-    f({2, 2}) = -1;
-    f({3, 3}) = 1;
+    f({2, 2}) = 1;
     is_f_initial = true;
   }
   mps.LoadTen(initial_center, GenMPSTenName(mps_path, initial_center));
@@ -784,11 +776,7 @@ inline MeasuRes<TenElemT> MeasureElectronPhonon4PointFunctionGroup(
 
   for (size_t i = site1 + 1; i < site2; ++i) {
     mps.LoadTen(i, GenMPSTenName(mps_path, i));
-    if (mps[i].GetIndexes()[1].dim() == bonson_op_dim) {
-      CtrctMidTen(mps, i, id_op_set[i], id_op_set[i], ptemp_ten);
-    } else {
-      CtrctMidTen(mps, i, f, id_op_set[i], ptemp_ten);
-    }
+    CtrctMidTen(mps, i, f, id_op_set[i], ptemp_ten);
     mps.dealloc(i);
   }
   mps.LoadTen(site2, GenMPSTenName(mps_path, site2));
@@ -806,11 +794,7 @@ inline MeasuRes<TenElemT> MeasureElectronPhonon4PointFunctionGroup(
     CtrctMidTen(mps, site3, phys_ops[2], id_op_set[site3], ptemp_ten);
     for (size_t i = site3 + 1; i < site4; ++i) {
       mps.LoadTen(i, GenMPSTenName(mps_path, i));
-      if (mps[i].GetIndexes()[1].dim() == bonson_op_dim) {
-        CtrctMidTen(mps, i, id_op_set[i], id_op_set[i], ptemp_ten);
-      } else {
-        CtrctMidTen(mps, i, f, id_op_set[i], ptemp_ten);
-      }
+      CtrctMidTen(mps, i, f, id_op_set[i], ptemp_ten);
     }
     // Deal with tail tensor.
     std::vector<size_t> tail_mps_ten_ctrct_axes1{0, 1, 2};

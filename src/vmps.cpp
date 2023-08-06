@@ -76,6 +76,11 @@ int main(int argc, char *argv[]) {
   using FiniteMPST = gqmps2::FiniteMPS<TenElemT, U1U1QN>;
   FiniteMPST mps(sites);
 
+  if (params.Threads == 0) {
+    const size_t max_threads = std::thread::hardware_concurrency();
+    params.Threads = max_threads;
+  }
+
   if (world.rank() == 0) {
     if (params.Threads > 2) {
       gqten::hp_numeric::SetTensorTransposeNumThreads(params.Threads - 2);
@@ -84,9 +89,30 @@ int main(int argc, char *argv[]) {
       gqten::hp_numeric::SetTensorTransposeNumThreads(params.Threads);
       gqten::hp_numeric::SetTensorManipulationThreads(params.Threads);
     }
+    std::cout << "max threads = " << params.Threads << std::endl;
   } else {
     gqten::hp_numeric::SetTensorTransposeNumThreads(params.Threads);
     gqten::hp_numeric::SetTensorManipulationThreads(params.Threads);
+  }
+
+  std::vector<long unsigned int> stat_labs(N);
+  size_t site_number_per_hole;
+  if (params.Numhole > 0) {
+    site_number_per_hole = N / params.Numhole;
+  } else {
+    site_number_per_hole = N + 99;
+  }
+
+  size_t sz_label = 0;
+  size_t hole_num = 0;
+  for (size_t i = 0; i < N; ++i) {
+    if (i % site_number_per_hole == site_number_per_hole - 1 && hole_num < params.Numhole) {
+      stat_labs[i] = 2;
+      hole_num ++;
+    } else {
+      stat_labs[i] = sz_label % 2;
+      sz_label++;
+    }
   }
 
   if (IsPathExist(kMpsPath)) {
@@ -94,35 +120,49 @@ int main(int argc, char *argv[]) {
       cout << "The number of mps files is consistent with mps size." << endl;
       cout << "Directly use mps from files." << endl;
     } else {
-      cout << "mps file number is not right." << endl;
-      env.abort(-1);
+      gqmps2::DirectStateInitMps(mps, stat_labs);
+      cout << "Initial mps as direct product state." << endl;
+      if (world.rank() == 0)
+        mps.Dump(kMpsPath, true);
     }
   } else {
     cout << "No mps directory." << endl;
-    env.abort(-1);
+    gqmps2::DirectStateInitMps(mps, stat_labs);
+    cout << "Initial mps as direct product state." << endl;
+    mps.Dump(kMpsPath, true);
+    if (world.rank() == 0)
+      env.abort(-1);
   }
 
   double e0;
 
   if (!has_bond_dimension_parameter) {
-    gqmps2::TwoSiteMPIVMPSSweepParams sweep_params(
+    gqmps2::SweepParams sweep_params(
         params.Sweeps,
         params.Dmin, params.Dmax, params.CutOff,
         gqmps2::LanczosParams(params.LanczErr, params.MaxLanczIter)
     );
-    e0 = gqmps2::TwoSiteFiniteVMPS(mps, mpo, sweep_params, world);
+    if (world.rank() == 0) {
+      e0 = gqmps2::TwoSiteFiniteVMPS(mps, mpo, sweep_params);
+    } else {
+      e0 = gqmps2::TwoSiteFiniteVMPS(mps, mpo, sweep_params, world);
+    }
   } else {
     for (size_t i = 0; i < DMRG_time; i++) {
       size_t D = input_D_set[i];
       if (world.rank() == 1) {
         std::cout << "D_max = " << D << std::endl;
       }
-      gqmps2::TwoSiteMPIVMPSSweepParams sweep_params(
+      gqmps2::SweepParams sweep_params(
           params.Sweeps,
           D, D, params.CutOff,
           gqmps2::LanczosParams(params.LanczErr, MaxLanczIterSet[i])
       );
-      e0 = gqmps2::TwoSiteFiniteVMPS(mps, mpo, sweep_params, world);
+      if (world.rank() == 0) {
+        e0 = gqmps2::TwoSiteFiniteVMPS(mps, mpo, sweep_params);
+      } else {
+        e0 = gqmps2::TwoSiteFiniteVMPS(mps, mpo, sweep_params, world);
+      }
     }
   }
 

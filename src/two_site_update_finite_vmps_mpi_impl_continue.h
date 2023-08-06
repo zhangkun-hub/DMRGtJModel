@@ -22,7 +22,7 @@
 #include "boost/mpi.hpp"                                                      //boost::mpi
 #include "gqmps2/algo_mpi/framework.h"                                        //VMPSORDER
 #include "gqmps2/algo_mpi/vmps/vmps_mpi_init_master.h"                        //MPI vmps initial
-#include "gqmps2/algo_mpi/vmps/two_site_update_finite_vmps_mpi.h"             //TwoSiteMPIVMPSSweepParams
+#include "gqmps2/algo_mpi/vmps/two_site_update_finite_vmps_mpi.h"             //SweepParams
 #include "gqmps2/algo_mpi/lanczos_solver_mpi_master.h"                        //MPI Lanczos solver
 #include "gqmps2/algo_mpi/vmps/two_site_update_finite_vmps_mpi_impl_master.h" //SlaveTwoSiteFiniteVMPS
 #include <thread>                                                             //thread
@@ -38,7 +38,7 @@ inline void LoadRelatedTensOnTwoSiteAlgWhenRightMoving(
     TenVec<GQTensor<TenElemT, QNT>> &renvs,
     const size_t target_site,
     const size_t left_boundary,
-    const TwoSiteMPIVMPSSweepParams &sweep_params
+    const SweepParams &sweep_params
 );
 
 template<typename TenElemT, typename QNT>
@@ -48,7 +48,7 @@ inline void LoadRelatedTensOnTwoSiteAlgWhenLeftMoving(
     TenVec<GQTensor<TenElemT, QNT>> &renvs,
     const size_t target_site,
     const size_t right_boundary,
-    const TwoSiteMPIVMPSSweepParams &sweep_params
+    const SweepParams &sweep_params
 );
 
 /**
@@ -59,7 +59,7 @@ template<typename TenElemT, typename QNT>
 inline GQTEN_Double TwoSiteFiniteVMPS2(
     FiniteMPS<TenElemT, QNT> &mps,
     const MPO<GQTensor<TenElemT, QNT>> &mpo,
-    TwoSiteMPIVMPSSweepParams &sweep_params,
+    SweepParams &sweep_params,
     mpi::communicator &world,
     const size_t start_site,
     const char start_direction
@@ -77,7 +77,7 @@ template<typename TenElemT, typename QNT>
 GQTEN_Double MasterTwoSiteFiniteVMPS2(
     FiniteMPS<TenElemT, QNT> &mps,
     const MPO<GQTensor<TenElemT, QNT>> &mpo,
-    TwoSiteMPIVMPSSweepParams &sweep_params,
+    SweepParams &sweep_params,
     mpi::communicator world,
     const size_t start_site,
     const char start_direction
@@ -149,7 +149,7 @@ template<typename TenElemT, typename QNT>
 double TwoSiteFiniteVMPSSweep2_StartToRight(
     FiniteMPS<TenElemT, QNT> &mps,
     const MPO<GQTensor<TenElemT, QNT>> &mpo,
-    const TwoSiteMPIVMPSSweepParams &sweep_params,
+    const SweepParams &sweep_params,
     const size_t left_boundary,
     const size_t right_boundary,
     mpi::communicator world,
@@ -182,7 +182,7 @@ double TwoSiteFiniteVMPSSweep2_StartToRight(
       );
     }
     if (i == start_site) {
-      TwoSiteMPIVMPSSweepParams sweep_params2 = sweep_params;
+      SweepParams sweep_params2 = sweep_params;
       sweep_params2.lancz_params.max_iterations = 20;
       e0 = MasterTwoSiteFiniteVMPSUpdate2(mps, lenvs, renvs, mpo, sweep_params2, 'r', i, world);
     } else {
@@ -245,7 +245,7 @@ template<typename TenElemT, typename QNT>
 double TwoSiteFiniteVMPSSweep2_StartToLeft(
     FiniteMPS<TenElemT, QNT> &mps,
     const MPO<GQTensor<TenElemT, QNT>> &mpo,
-    const TwoSiteMPIVMPSSweepParams &sweep_params,
+    const SweepParams &sweep_params,
     const size_t left_boundary,
     const size_t right_boundary,
     mpi::communicator world,
@@ -288,7 +288,7 @@ double TwoSiteFiniteVMPSSweep2_StartToLeft(
       );
     }
     if (i == start_site) {
-      TwoSiteMPIVMPSSweepParams sweep_params2 = sweep_params;
+      SweepParams sweep_params2 = sweep_params;
       sweep_params2.lancz_params.max_iterations = 20;
       e0 = MasterTwoSiteFiniteVMPSUpdate2(mps, lenvs, renvs, mpo, sweep_params2, 'l', i, world);
     } else {
@@ -319,7 +319,7 @@ double MasterTwoSiteFiniteVMPSUpdate2(
     TenVec<GQTensor<TenElemT, QNT>> &lenvs,
     TenVec<GQTensor<TenElemT, QNT>> &renvs,
     const MPO<GQTensor<TenElemT, QNT>> &mpo,
-    const TwoSiteMPIVMPSSweepParams &sweep_params,
+    const SweepParams &sweep_params,
     const char dir,
     const size_t target_site,
     mpi::communicator &world
