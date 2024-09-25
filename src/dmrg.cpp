@@ -25,10 +25,6 @@ using namespace std;
 int main(int argc, char *argv[]) {
   namespace mpi = boost::mpi;
   mpi::environment env;
-  if (env.thread_level() < mpi::threading::multiple) {
-    std::cout << "thread level of env is not right." << std::endl;
-    env.abort(-1);
-  }
   mpi::communicator world;
   CaseParams params(argv[1]);
   size_t Lx = params.Lx, Ly = params.Ly;
