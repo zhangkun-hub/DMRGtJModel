@@ -1,5 +1,5 @@
-#include "gqmps2/gqmps2.h"
-#include "gqten/gqten.h"
+#include "qlmps/qlmps.h"
+#include "qlten/qlten.h"
 #include <time.h>
 #include <stdlib.h>
 #include "gqdouble.h"
@@ -9,8 +9,8 @@
 #include "squarelattice.h"
 #include "tJmodel.h"
 
-using namespace gqmps2;
-using namespace gqten;
+using namespace qlmps;
+using namespace qlten;
 using namespace std;
 
 int main(int argc, char *argv[]) {
@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
   startTime = clock();
   OperatorInitial();
   const SiteVec<TenElemT, U1U1QN> sites = SiteVec<TenElemT, U1U1QN>(N, pb_out);
-  gqmps2::MPOGenerator<TenElemT, U1U1QN> mpo_gen(sites, qn0);
+  qlmps::MPOGenerator<TenElemT, U1U1QN> mpo_gen(sites, qn0);
 
   if (Ly == 2) {
     SquareLadder lattice(Lx);
@@ -47,9 +47,9 @@ int main(int argc, char *argv[]) {
     ConstructtJMPOGenerator(mpo_gen, lattice, model_params);
   }
 
-  gqten::hp_numeric::SetTensorTransposeNumThreads(params.Threads);
-  gqten::hp_numeric::SetTensorManipulationThreads(params.Threads);
-  gqmps2::MPO<Tensor> mpo = mpo_gen.Gen();
+
+  qlten::hp_numeric::SetTensorManipulationThreads(params.Threads);
+  qlmps::MPO<Tensor> mpo = mpo_gen.Gen();
   cout << "MPO generated." << endl;
 
   const std::string kMpoPath = "mpo";
@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
   for (size_t i = 0; i < mpo.size(); i++) {
     std::string filename = kMpoPath + "/" +
         kMpoTenBaseName + std::to_string(i)
-        + "." + kGQTenFileSuffix;
+        + "." + kQLTenFileSuffix;
     mpo.DumpTen(i, filename);
   }
 

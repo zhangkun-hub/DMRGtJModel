@@ -1,5 +1,5 @@
-#include "gqmps2/gqmps2.h"
-#include "gqten/gqten.h"
+#include "qlmps/qlmps.h"
+#include "qlten/qlten.h"
 #include <time.h>
 #include <stdlib.h>
 #include "gqdouble.h"
@@ -9,13 +9,13 @@
 #include "squarelattice.h"
 #include "tJmodel.h"
 
-using namespace gqmps2;
-using namespace gqten;
+using namespace qlmps;
+using namespace qlten;
 using namespace std;
 
 int main(int argc, char *argv[]) {
   namespace mpi = boost::mpi;
-  mpi::environment env(mpi::threading::multiple);
+  mpi::environment env;
   if (env.thread_level() < mpi::threading::multiple) {
     std::cout << "thread level of env is not right." << std::endl;
     env.abort(-1);
@@ -57,13 +57,13 @@ int main(int argc, char *argv[]) {
   startTime = clock();
   OperatorInitial();
   const SiteVec<TenElemT, U1U1QN> sites = SiteVec<TenElemT, U1U1QN>(N, pb_out);
-  gqmps2::MPO<Tensor> mpo(N);
+  qlmps::MPO<Tensor> mpo(N);
   const std::string kMpoPath = "mpo";
   const std::string kMpoTenBaseName = "mpo_ten";
   if (IsPathExist(kMpoPath)) {
     for (size_t i = 0; i < mpo.size(); i++) {
       std::string filename = kMpoPath + "/" +
-          kMpoTenBaseName + std::to_string(i) + "." + kGQTenFileSuffix;
+          kMpoTenBaseName + std::to_string(i) + "." + kQLTenFileSuffix;
       mpo.LoadTen(i, filename);
     }
 
@@ -73,7 +73,7 @@ int main(int argc, char *argv[]) {
     exit(0);
   }
 
-  using FiniteMPST = gqmps2::FiniteMPS<TenElemT, U1U1QN>;
+  using FiniteMPST = qlmps::FiniteMPS<TenElemT, U1U1QN>;
   FiniteMPST mps(sites);
 
   if (params.Threads == 0) {
@@ -83,16 +83,15 @@ int main(int argc, char *argv[]) {
 
   if (world.rank() == 0) {
     if (params.Threads > 2) {
-      gqten::hp_numeric::SetTensorTransposeNumThreads(params.Threads - 2);
-      gqten::hp_numeric::SetTensorManipulationThreads(params.Threads - 2);
+      qlten::hp_numeric::SetTensorManipulationThreads(params.Threads - 2);
     } else {
-      gqten::hp_numeric::SetTensorTransposeNumThreads(params.Threads);
-      gqten::hp_numeric::SetTensorManipulationThreads(params.Threads);
+
+      qlten::hp_numeric::SetTensorManipulationThreads(params.Threads);
     }
     std::cout << "max threads = " << params.Threads << std::endl;
   } else {
-    gqten::hp_numeric::SetTensorTransposeNumThreads(params.Threads);
-    gqten::hp_numeric::SetTensorManipulationThreads(params.Threads);
+
+    qlten::hp_numeric::SetTensorManipulationThreads(params.Threads);
   }
 
   std::vector<long unsigned int> stat_labs(N);
@@ -108,7 +107,7 @@ int main(int argc, char *argv[]) {
   for (size_t i = 0; i < N; ++i) {
     if (i % site_number_per_hole == site_number_per_hole - 1 && hole_num < params.Numhole) {
       stat_labs[i] = 2;
-      hole_num ++;
+      hole_num++;
     } else {
       stat_labs[i] = sz_label % 2;
       sz_label++;
@@ -120,14 +119,14 @@ int main(int argc, char *argv[]) {
       cout << "The number of mps files is consistent with mps size." << endl;
       cout << "Directly use mps from files." << endl;
     } else {
-      gqmps2::DirectStateInitMps(mps, stat_labs);
+      qlmps::DirectStateInitMps(mps, stat_labs);
       cout << "Initial mps as direct product state." << endl;
       if (world.rank() == 0)
         mps.Dump(kMpsPath, true);
     }
   } else {
     cout << "No mps directory." << endl;
-    gqmps2::DirectStateInitMps(mps, stat_labs);
+    qlmps::DirectStateInitMps(mps, stat_labs);
     cout << "Initial mps as direct product state." << endl;
     mps.Dump(kMpsPath, true);
     if (world.rank() == 0)
@@ -137,15 +136,15 @@ int main(int argc, char *argv[]) {
   double e0;
 
   if (!has_bond_dimension_parameter) {
-    gqmps2::SweepParams sweep_params(
+    qlmps::FiniteVMPSSweepParams sweep_params(
         params.Sweeps,
         params.Dmin, params.Dmax, params.CutOff,
-        gqmps2::LanczosParams(params.LanczErr, params.MaxLanczIter)
+        qlmps::LanczosParams(params.LanczErr, params.MaxLanczIter)
     );
     if (world.rank() == 0) {
-      e0 = gqmps2::TwoSiteFiniteVMPS(mps, mpo, sweep_params);
+      e0 = qlmps::TwoSiteFiniteVMPS(mps, mpo, sweep_params);
     } else {
-      e0 = gqmps2::TwoSiteFiniteVMPS(mps, mpo, sweep_params, world);
+      e0 = qlmps::TwoSiteFiniteVMPS(mps, mpo, sweep_params, world);
     }
   } else {
     for (size_t i = 0; i < DMRG_time; i++) {
@@ -153,15 +152,15 @@ int main(int argc, char *argv[]) {
       if (world.rank() == 1) {
         std::cout << "D_max = " << D << std::endl;
       }
-      gqmps2::SweepParams sweep_params(
+      qlmps::FiniteVMPSSweepParams sweep_params(
           params.Sweeps,
           D, D, params.CutOff,
-          gqmps2::LanczosParams(params.LanczErr, MaxLanczIterSet[i])
+          qlmps::LanczosParams(params.LanczErr, MaxLanczIterSet[i])
       );
       if (world.rank() == 0) {
-        e0 = gqmps2::TwoSiteFiniteVMPS(mps, mpo, sweep_params);
+        e0 = qlmps::TwoSiteFiniteVMPS(mps, mpo, sweep_params);
       } else {
-        e0 = gqmps2::TwoSiteFiniteVMPS(mps, mpo, sweep_params, world);
+        e0 = qlmps::TwoSiteFiniteVMPS(mps, mpo, sweep_params, world);
       }
     }
   }

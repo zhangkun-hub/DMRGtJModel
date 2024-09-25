@@ -3,7 +3,7 @@
 #define TJMODEL_SRC_OPERATORS_H
 
 
-#include "gqten/gqten.h"
+#include "qlten/qlten.h"
 #include "gqdouble.h"
 
 extern Tensor sz, sp,sm, id;

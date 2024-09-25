@@ -7,8 +7,8 @@
 */
 
 
-#include "gqmps2/gqmps2.h"
-#include "gqten/gqten.h"
+#include "qlmps/qlmps.h"
+#include "qlten/qlten.h"
 #include <time.h>
 #include <stdlib.h>
 #include "gqdouble.h"
@@ -18,8 +18,8 @@
 #include "squarelattice.h"
 #include "tJmodel.h"
 
-using namespace gqmps2;
-using namespace gqten;
+using namespace qlmps;
+using namespace qlten;
 using namespace std;
 
 
@@ -33,13 +33,13 @@ clock_t startTime,endTime;
 startTime = clock();
 OperatorInitial();
 const SiteVec<TenElemT, U1U1QN> sites=SiteVec<TenElemT, U1U1QN>(N, pb_out);
-gqmps2::MPO<Tensor> mpo(N);
+qlmps::MPO<Tensor> mpo(N);
 const std::string kMpoPath = "mpo";
 const std::string kMpoTenBaseName = "mpo_ten";
 if (IsPathExist(kMpoPath)) {
   for(size_t i=0; i<mpo.size();i++){
       std::string filename = kMpoPath + "/" +
-       kMpoTenBaseName + std::to_string(i) + "." + kGQTenFileSuffix;
+       kMpoTenBaseName + std::to_string(i) + "." + kQLTenFileSuffix;
        mpo.LoadTen(i,filename);
   }
 
@@ -50,7 +50,7 @@ if (IsPathExist(kMpoPath)) {
 }
 
 
-using FiniteMPST = gqmps2::FiniteMPS<TenElemT, U1U1QN>;
+using FiniteMPST = qlmps::FiniteMPS<TenElemT, U1U1QN>;
 FiniteMPST mps(sites);
 
   std::vector<long unsigned int> stat_labs(N);
@@ -71,12 +71,12 @@ FiniteMPST mps(sites);
     }
   }
 
-gqten::hp_numeric::SetTensorTransposeNumThreads(params.Threads);
-gqten::hp_numeric::SetTensorManipulationThreads(params.Threads);
-gqmps2::SweepParams sweep_params(
+
+qlten::hp_numeric::SetTensorManipulationThreads(params.Threads);
+qlmps::FiniteVMPSSweepParams sweep_params(
     params.Sweeps,
     params.Dmin, params.Dmax, params.CutOff,
-    gqmps2::LanczosParams(params.LanczErr, params.MaxLanczIter)
+    qlmps::LanczosParams(params.LanczErr, params.MaxLanczIter)
 );
 
 
@@ -85,17 +85,17 @@ if(IsPathExist(kMpsPath)){
     cout << "The number of mps files is consistent with mps size." <<endl;
     cout << "Directly use mps from files." <<endl;
   }else{
-    gqmps2::DirectStateInitMps(mps, stat_labs);
+    qlmps::DirectStateInitMps(mps, stat_labs);
     cout << "Initial mps as direct product state." <<endl;
     mps.Dump(sweep_params.mps_path, true);
   }
 }else{
-  gqmps2::DirectStateInitMps(mps, stat_labs);
+  qlmps::DirectStateInitMps(mps, stat_labs);
   cout << "Initial mps as direct product state." <<endl;
   mps.Dump(sweep_params.mps_path, true);
 }
 
-auto e0 = gqmps2::TwoSiteFiniteVMPS(mps, mpo, sweep_params);
+auto e0 = qlmps::TwoSiteFiniteVMPS(mps, mpo, sweep_params);
 std::cout << "E0/site: " << e0 / N << std::endl;
 endTime = clock();
 cout << "CPU Time : " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;

@@ -15,13 +15,13 @@
 #include <time.h>
 #include <vector>
 #include <stdlib.h>     // system
-#include "gqmps2/gqmps2.h"
+#include "qlmps/qlmps.h"
 #include "myutil.h"
 #include "two_site_update_finite_vmps_mpi_impl_continue.h"
 #include "params_case.h"
 
-using namespace gqmps2;
-using namespace gqten;
+using namespace qlmps;
+using namespace qlten;
 using namespace std;
 
 int ParserContinueArgs(const int argc, char *argv[],
@@ -60,7 +60,7 @@ int ParserContinueArgs(const int argc, char *argv[],
 }
 int main(int argc, char *argv[]) {
   namespace mpi = boost::mpi;
-  mpi::environment env(mpi::threading::multiple);
+  mpi::environment env;
   if (env.thread_level() < mpi::threading::multiple) {
     std::cout << "thread level of env is not right." << std::endl;
     env.abort(-1);
@@ -82,14 +82,14 @@ int main(int argc, char *argv[]) {
   startTime = clock();
 
   const SiteVec<TenElemT, U1U1QN> sites(N, pb_out);
-  gqmps2::MPOGenerator<TenElemT, U1U1QN> mpo_gen(sites, qn0);
+  qlmps::MPOGenerator<TenElemT, U1U1QN> mpo_gen(sites, qn0);
   const std::string kMpoPath = "mpo";
   const std::string kMpoTenBaseName = "mpo_ten";
-  gqmps2::MPO<Tensor> mpo(N);
+  qlmps::MPO<Tensor> mpo(N);
   if (IsPathExist(kMpoPath)) {
     for (size_t i = 0; i < mpo.size(); i++) {
       std::string filename = kMpoPath + "/" +
-          kMpoTenBaseName + std::to_string(i) + "." + kGQTenFileSuffix;
+          kMpoTenBaseName + std::to_string(i) + "." + kQLTenFileSuffix;
       mpo.LoadTen(i, filename);
     }
     cout << "FiniteMPO loaded." << endl;
@@ -98,25 +98,25 @@ int main(int argc, char *argv[]) {
     exit(0);
   }
 
-  using FiniteMPST = gqmps2::FiniteMPS<TenElemT, U1U1QN>;
+  using FiniteMPST = qlmps::FiniteMPS<TenElemT, U1U1QN>;
   FiniteMPST mps(sites);
 
   if (world.rank() == 0) {
     if (params.Threads > 2) {
-      gqten::hp_numeric::SetTensorTransposeNumThreads(params.Threads - 2);
-      gqten::hp_numeric::SetTensorManipulationThreads(params.Threads - 2);
+      qlten::hp_numeric::SetTensorTransposeNumThreads(params.Threads - 2);
+      qlten::hp_numeric::SetTensorManipulationThreads(params.Threads - 2);
     } else {
-      gqten::hp_numeric::SetTensorTransposeNumThreads(params.Threads);
-      gqten::hp_numeric::SetTensorManipulationThreads(params.Threads);
+
+      qlten::hp_numeric::SetTensorManipulationThreads(params.Threads);
     }
   } else {
-    gqten::hp_numeric::SetTensorTransposeNumThreads(params.Threads);
-    gqten::hp_numeric::SetTensorManipulationThreads(params.Threads);
+
+    qlten::hp_numeric::SetTensorManipulationThreads(params.Threads);
   }
-  gqmps2::TwoSiteMPIVMPSSweepParams sweep_params(
+  qlmps::TwoSiteMPIVMPSFiniteVMPSSweepParams sweep_params(
       params.Sweeps,
       params.Dmin, params.Dmax, params.CutOff,
-      gqmps2::LanczosParams(params.LanczErr, params.MaxLanczIter)
+      qlmps::LanczosParams(params.LanczErr, params.MaxLanczIter)
   );
   if (IsPathExist(kMpsPath)) {//mps only can be load from file
     if (N == GetNumofMps()) {
@@ -131,7 +131,7 @@ int main(int argc, char *argv[]) {
     env.abort(-1);
   }
 
-  auto e0 = gqmps2::TwoSiteFiniteVMPS2(mps, mpo, sweep_params, world, start_site, start_direction);
+  auto e0 = qlmps::TwoSiteFiniteVMPS2(mps, mpo, sweep_params, world, start_site, start_direction);
   if (world.rank() == 0) {
     std::cout << "E0/site: " << e0 / N << std::endl;
     endTime = clock();

@@ -1,17 +1,17 @@
-#include "gqmps2/gqmps2.h"
+#include "qlmps/qlmps.h"
 #include "myutil.h"
 #include <random>
 
-using gqmps2::kMpsPath;
-using gqmps2::kMpsTenBaseName;
-using gqmps2::kGQTenFileSuffix;
+using qlmps::kMpsPath;
+using qlmps::kMpsTenBaseName;
+using qlmps::kQLTenFileSuffix;
 
 //number of mps file in default mps path("./mps")
 size_t GetNumofMps() {
   size_t NumberOfMpsFile = 0;
   for (NumberOfMpsFile = 0; NumberOfMpsFile < 1e5; NumberOfMpsFile++) {
     std::string file;
-    file = kMpsPath + "/" + kMpsTenBaseName + std::to_string(NumberOfMpsFile) + "." + kGQTenFileSuffix;
+    file = kMpsPath + "/" + kMpsTenBaseName + std::to_string(NumberOfMpsFile) + "." + kQLTenFileSuffix;
     std::ifstream ifs(file, std::ifstream::binary);
     if (ifs.good()) {
       ifs.close();
@@ -184,12 +184,11 @@ std::vector<std::vector<size_t>> GenAllOrderedMomentumPairs(const size_t ly) {
   return momentum_pairs;
 }
 
-
 std::vector<std::vector<size_t>> GenAllMomentumPairs(const size_t ly) {
   std::vector<std::vector<size_t>> momentum_pairs;
-  for (size_t k1 = 0; k1 < ly ; k1++) {
+  for (size_t k1 = 0; k1 < ly; k1++) {
     for (size_t k2 = 0; k2 < ly; k2++) {
-      for (size_t k3 = 0; k3 < ly ; k3++) {
+      for (size_t k3 = 0; k3 < ly; k3++) {
         for (size_t k4 = 0; k4 < ly; k4++) {
           if ((k1 + k2 - k3 - k4 + 2 * ly) % ly == 0) {
             momentum_pairs.push_back({k1, k2, k3, k4});
@@ -200,7 +199,6 @@ std::vector<std::vector<size_t>> GenAllMomentumPairs(const size_t ly) {
   }
   return momentum_pairs;
 }
-
 
 /**
  * Generate all the pairs of momenta (k1,k2,k3)
