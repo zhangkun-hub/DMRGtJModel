@@ -41,6 +41,38 @@ option(COMPILE_FIX_CODE "compile the fixing code" OFF)
 set(CMAKE_CXX_STANDARD 17)
 add_definitions(-Wall -g)
 
+option(QLMPS_USE_GPU "Use GPU" OFF)
+
+
+if (QLMPS_USE_GPU)
+    set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/Modules/") # find cutensor
+
+    add_definitions(-DUSE_GPU=1)
+
+    # Enable CUDA language support
+    enable_language(CUDA)
+    find_package(CUDAToolkit REQUIRED)  # Modern CUDA Toolkit detection
+
+    include_directories(${CUDAToolkit_INCLUDE_DIRS})
+    message(STATUS "CUDA_INCLUDE_DIRS: '${CUDAToolkit_INCLUDE_DIRS}'")
+
+    # Set CUDA architectures
+    set(CMAKE_CUDA_ARCHITECTURES 70 80) # For V100 & A100, adjust if needed
+    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -lineinfo -Xcompiler=-fPIC")
+
+
+    find_package(CUTENSOR REQUIRED)
+
+    file(GLOB_RECURSE TEST_SOURCES src/*.cpp)
+    message(STATUS "TEST_SOURCES" ${TEST_SOURCES})
+    # Treat all .cc files in tests/ as CUDA files
+    set_source_files_properties(${TEST_SOURCES} PROPERTIES LANGUAGE CUDA)
+else ()
+    find_path(hptt_INCLUDE_DIR "hptt.h")
+    find_library(hptt_LIBRARY "libhptt.a")
+    message(STATUS "HPTT Lib : " "${hptt_LIBRARY}")
+endif ()
+
 
 if (APPLE AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
     if (CMAKE_CXX_COMPILER_ID MATCHES "Intel")
@@ -113,13 +145,13 @@ endif ()
 
 add_compile_options(${MATH_LIB_COMPILE_FLAGS} ${OMP_FLAGS})
 
+if (NOT QLMPS_USE_GPU)
 include_directories(${MPS_HEADER_PATH}
         ${TENSOR_HEADER_PATH}
         ${hptt_INCLUDE_DIR}
         ${Boost_INCLUDE_DIR}
         ${MPI_CXX_HEADER_DIR}
 )
-
 link_libraries(
         ${hptt_LIBRARY}
         ${MATH_LIB_LINK_FLAGS}
@@ -128,10 +160,36 @@ link_libraries(
         ${MPI_CXX_LINK_FLAGS}
         ${MPI_mpi_LIBRARY}
 )
+else()
+include_directories(${MPS_HEADER_PATH}
+        ${TENSOR_HEADER_PATH}
+        ${CUTENSOR_INCLUDE_DIR}
+        ${Boost_INCLUDE_DIR}
+        ${MPI_CXX_HEADER_DIR}
+)
+link_libraries(
+        CUDA::cublas_static
+        CUDA::cusolver_static
+        ${CUTENSOR_LIBRARY}
+        ${MATH_LIB_LINK_FLAGS}
+
+        Boost::serialization
+        Boost::mpi
+        ${MPI_CXX_LINK_FLAGS}
+        ${MPI_mpi_LIBRARY}
+)
+endif()
+
+
+if(NOT QLMPS_USE_GPU)
+  add_executable(dmrg src/dmrg.cpp src/myutil.cpp src/operators.cpp)
+else()
+  add_executable(dmrg src/dmrg_single.cpp src/myutil.cpp src/operators.cpp)
+endif()
+
 
 add_executable(mpogen src/mpogen.cpp src/operators.cpp)
 #add_executable(dmrg1 src/dmrg1.cpp src/myutil.cpp src/operators.cpp)
-add_executable(dmrg src/dmrg.cpp src/myutil.cpp src/operators.cpp)
 add_executable(dmrg1FM src/vmps1FM.cpp src/myutil.cpp src/operators.cpp)
 add_executable(vmps src/vmps.cpp src/myutil.cpp src/operators.cpp)
 add_executable(measure1 src/measure1.cpp src/myutil.cpp src/operators.cpp)
