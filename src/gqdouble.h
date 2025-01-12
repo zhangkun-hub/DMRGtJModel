@@ -1,6 +1,5 @@
 #ifndef TJMODEL_SRC_GQDOUBLE_H
 #define TJMODEL_SRC_GQDOUBLE_H
-#include "boost/serialization/complex.hpp"
 #include "qlten/qlten.h"
 
 using qlten::QNCard;

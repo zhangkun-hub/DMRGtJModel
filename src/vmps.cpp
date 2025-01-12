@@ -14,14 +14,16 @@ using namespace qlten;
 using namespace std;
 
 int main(int argc, char *argv[]) {
-  namespace mpi = boost::mpi;
-  mpi::environment env;
-  mpi::communicator world;
+  MPI_Init(nullptr, nullptr);
+  MPI_Comm comm = MPI_COMM_WORLD;
+  int rank, mpi_size;
+  MPI_Comm_rank(comm, &rank);
+  MPI_Comm_size(comm, &mpi_size);
   CaseParams params(argv[1]);
   size_t Lx = params.Lx, Ly = params.Ly;
   size_t N = Lx * Ly;
   tJModelParamters model_params(params);
-  if (world.rank() == 0) {
+  if (rank == 0) {
     model_params.Print();
   }
 
@@ -54,8 +56,6 @@ int main(int argc, char *argv[]) {
   OperatorInitial();
   const SiteVec<TenElemT, U1U1QN> sites = SiteVec<TenElemT, U1U1QN>(N, pb_out);
   qlmps::MPO<Tensor> mpo(N);
-  const std::string kMpoPath = "mpo";
-  const std::string kMpoTenBaseName = "mpo_ten";
   if (IsPathExist(kMpoPath)) {
     for (size_t i = 0; i < mpo.size(); i++) {
       std::string filename = kMpoPath + "/" +
@@ -78,7 +78,7 @@ int main(int argc, char *argv[]) {
   }
 
 #ifndef USE_GPU
-  if (world.rank() == 0) {
+  if (rank == 0) {
     if (params.Threads > 2) {
       qlten::hp_numeric::SetTensorManipulationThreads(params.Threads - 2);
     } else {
@@ -92,7 +92,7 @@ int main(int argc, char *argv[]) {
   }
 #endif
 
-  std::vector<long unsigned int> stat_labs(N);
+  std::vector<size_t> stat_labs(N);
   size_t site_number_per_hole;
   if (params.Numhole > 0) {
     site_number_per_hole = N / params.Numhole;
@@ -119,7 +119,7 @@ int main(int argc, char *argv[]) {
     } else {
       qlmps::DirectStateInitMps(mps, stat_labs);
       cout << "Initial mps as direct product state." << endl;
-      if (world.rank() == 0)
+      if (rank == 0)
         mps.Dump(kMpsPath, true);
     }
   } else {
@@ -127,8 +127,8 @@ int main(int argc, char *argv[]) {
     qlmps::DirectStateInitMps(mps, stat_labs);
     cout << "Initial mps as direct product state." << endl;
     mps.Dump(kMpsPath, true);
-    if (world.rank() == 0)
-      env.abort(-1);
+    if (rank == 0)
+      MPI_Abort(comm, -1);
   }
 
   double e0;
@@ -139,15 +139,15 @@ int main(int argc, char *argv[]) {
         params.Dmin, params.Dmax, params.CutOff,
         qlmps::LanczosParams(params.LanczErr, params.MaxLanczIter)
     );
-    if (world.rank() == 0) {
+    if (rank == 0) {
       e0 = qlmps::TwoSiteFiniteVMPS(mps, mpo, sweep_params);
     } else {
-      e0 = qlmps::TwoSiteFiniteVMPS(mps, mpo, sweep_params, world);
+      e0 = qlmps::TwoSiteFiniteVMPS(mps, mpo, sweep_params, comm);
     }
   } else {
     for (size_t i = 0; i < DMRG_time; i++) {
       size_t D = input_D_set[i];
-      if (world.rank() == 1) {
+      if (rank == 1) {
         std::cout << "D_max = " << D << std::endl;
       }
       qlmps::FiniteVMPSSweepParams sweep_params(
@@ -155,19 +155,20 @@ int main(int argc, char *argv[]) {
           D, D, params.CutOff,
           qlmps::LanczosParams(params.LanczErr, MaxLanczIterSet[i])
       );
-      if (world.rank() == 0) {
+      if (rank == 0) {
         e0 = qlmps::TwoSiteFiniteVMPS(mps, mpo, sweep_params);
       } else {
-        e0 = qlmps::TwoSiteFiniteVMPS(mps, mpo, sweep_params, world);
+        e0 = qlmps::TwoSiteFiniteVMPS(mps, mpo, sweep_params, comm);
       }
     }
   }
 
-  if (world.rank() == 0) {
+  if (rank == 0) {
     std::cout << "E0/site: " << e0 / N << std::endl;
     endTime = clock();
     cout << "CPU Time : " << (double) (endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
   }
+  MPI_Finalize();
   return 0;
 }
 

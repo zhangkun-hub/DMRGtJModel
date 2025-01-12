@@ -33,9 +33,11 @@ TenElemT ExpectationValue(FiniteMPS<TenElemT, QNT>,
                           const MPO<QLTensor<TenElemT, QNT>> &,
                           const std::string);
 int main(int argc, char *argv[]) {
-  namespace mpi = boost::mpi;
-  mpi::environment env;
-  mpi::communicator world;
+  MPI_Init(nullptr, nullptr);
+  MPI_Comm comm = MPI_COMM_WORLD;
+  int rank, mpi_size;
+  MPI_Comm_rank(comm, &rank);
+  MPI_Comm_size(comm, &mpi_size);
 
   CaseParams params(argv[1]);
   size_t Lx = params.Lx;
@@ -70,25 +72,26 @@ int main(int argc, char *argv[]) {
   auto SmSp = MpoProduct(Sm_mpo, Sp_mpo);
 
   TenElemT res_sz2, res_spsm, res_smsp;
-  if (world.rank() == 0) {
+  if (rank == 0) {
     res_sz2 = ExpectationValue(mps, Sz_square, kMpsPath);
     std::cout << "Sz square = " << res_sz2 << std::endl;
-    world.recv(1, 15, res_spsm);
+    hp_numeric::MPI_Recv(&res_spsm, 1, 1, 15, comm);
     std::cout << "Sp*Sm = " << res_spsm << std::endl;
-    world.recv(2, 16, res_smsp);
+    hp_numeric::MPI_Recv(&res_smsp, 1, 2, 16, comm);
     std::cout << "Sm*Sp = " << res_smsp << std::endl;
     auto S_square = res_sz2 + (res_spsm + res_smsp) / 2.0;
     std::cout << "S^2 = " << S_square << std::endl;
-  } else if (world.rank() == 1) {
+  } else if (rank == 1) {
     res_spsm = ExpectationValue(mps, SpSm, kMpsPath);
-    world.send(0, 15, res_spsm);
-  } else if (world.rank() == 2) {
+    hp_numeric::MPI_Send(&res_spsm, 1, 0, 15, comm);
+  } else if (rank == 2) {
     res_smsp = ExpectationValue(mps, SmSp, kMpsPath);
-    world.send(0, 16, res_smsp);
+    hp_numeric::MPI_Send(&res_smsp, 1, 0, 16, comm);
   }
 
   endTime = clock();
   cout << "CPU Time : " << (double) (endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
+  MPI_Finalize();
   return 0;
 }
 
@@ -193,5 +196,6 @@ MPO<QLTensor<TenElemT, QNT>> MpoProduct(const MPO<QLTensor<TenElemT, QNT>> &mpo1
     assert(res[i].GetIndexes()[1] == mpo1[i].GetIndexes()[1]);
     assert(res[i].GetIndexes()[2] == mpo2[i].GetIndexes()[2]);
   }
+  MPI_Finalize();
   return res;
 }

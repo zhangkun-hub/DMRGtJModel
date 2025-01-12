@@ -19,7 +19,6 @@
 #include <cstdlib>
 #include "qlten/qlten.h"
 #include "qlmps/algorithm/lanczos_solver.h"                                  //LanczosParams
-#include "boost/mpi.hpp"                                                      //boost::mpi
 #include "qlmps/algo_mpi/framework.h"                                        //VMPSORDER
 #include "qlmps/algo_mpi/vmps/vmps_mpi_init_master.h"                        //MPI vmps initial
 #include "qlmps/algo_mpi/vmps/two_site_update_finite_vmps_mpi.h"             //FiniteVMPSSweepParams
@@ -65,7 +64,7 @@ inline GQTEN_Double TwoSiteFiniteVMPS2(
     const char start_direction
 ) {
   GQTEN_Double e0(0.0);
-  if (world.rank() == kMasterRank) {
+  if (rank == kMasterRank) {
     e0 = MasterTwoSiteFiniteVMPS2(mps, mpo, sweep_params, world, start_site, start_direction);
   } else {
     SlaveTwoSiteFiniteVMPS<TenElemT, QNT>(mpo, world);

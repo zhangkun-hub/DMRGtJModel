@@ -9,8 +9,7 @@
 
 #include "qlmps/qlmps.h"
 #include "qlten/qlten.h"
-#include <time.h>
-#include <stdlib.h>
+#include <ctime>
 #include "gqdouble.h"
 #include "operators.h"
 #include "params_case.h"
@@ -23,14 +22,16 @@ using namespace qlten;
 using namespace std;
 
 int main(int argc, char *argv[]) {
-  namespace mpi = boost::mpi;
-  mpi::environment env;
-  mpi::communicator world;
+  MPI_Init(nullptr, nullptr);
+  MPI_Comm comm = MPI_COMM_WORLD;
+  int rank, mpi_size;
+  MPI_Comm_rank(comm, &rank);
+  MPI_Comm_size(comm, &mpi_size);
   CaseParams params(argv[1]);
   size_t Lx = params.Lx, Ly = params.Ly;
   size_t N = Lx * Ly;
   tJModelParamters model_params(params);
-  if (world.rank() == 0) {
+  if (rank == 0) {
     model_params.Print();
   }
   clock_t startTime, endTime;
@@ -120,13 +121,13 @@ int main(int argc, char *argv[]) {
     } else {
       qlmps::DirectStateInitMps(mps, stat_labs);
       cout << "Initial mps as direct product state." << endl;
-      if (world.rank() == 0)
+      if (rank == 0)
         mps.Dump(kMpsPath, true);
     }
   } else {
     qlmps::DirectStateInitMps(mps, stat_labs);
     cout << "Initial mps as direct product state." << endl;
-    if (world.rank() == 0)
+    if (rank == 0)
       mps.Dump(kMpsPath, true);
   }
   double e0;
@@ -136,11 +137,11 @@ int main(int argc, char *argv[]) {
         params.Dmin, params.Dmax, params.CutOff,
         qlmps::LanczosParams(params.LanczErr, params.MaxLanczIter)
     );
-    e0 = qlmps::FiniteDMRG(mps, mat_repr_mpo, sweep_params, world);
+    e0 = qlmps::FiniteDMRG(mps, mat_repr_mpo, sweep_params, comm);
   } else {
     for (size_t i = 0; i < DMRG_time; i++) {
       size_t D = input_D_set[i];
-      if (world.rank() == 1) {
+      if (rank == 1) {
         std::cout << "D_max = " << D << std::endl;
       }
       qlmps::FiniteVMPSSweepParams sweep_params(
@@ -148,12 +149,13 @@ int main(int argc, char *argv[]) {
           D, D, params.CutOff,
           qlmps::LanczosParams(params.LanczErr, MaxLanczIterSet[i])
       );
-      e0 = qlmps::FiniteDMRG(mps, mat_repr_mpo, sweep_params, world);
+      e0 = qlmps::FiniteDMRG(mps, mat_repr_mpo, sweep_params, comm);
     }
   }
   std::cout << "E0/site: " << e0 / N << std::endl;
   endTime = clock();
   cout << "CPU Time : " << (double) (endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
+  MPI_Finalize();
   return 0;
 }
 

@@ -128,10 +128,6 @@ endif ()
 find_path(TENSOR_HEADER_PATH "qlten")
 find_path(MPS_HEADER_PATH "qlmps")
 find_package(hptt)
-find_package(Boost
-        1.76.0
-        REQUIRED
-        COMPONENTS serialization mpi)
 find_package(MPI REQUIRED)
 #set omp flag
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
@@ -146,61 +142,50 @@ endif ()
 add_compile_options(${MATH_LIB_COMPILE_FLAGS} ${OMP_FLAGS})
 
 if (NOT QLMPS_USE_GPU)
-include_directories(${MPS_HEADER_PATH}
-        ${TENSOR_HEADER_PATH}
-        ${hptt_INCLUDE_DIR}
-        ${Boost_INCLUDE_DIR}
-        ${MPI_CXX_HEADER_DIR}
-)
-link_libraries(
-        ${hptt_LIBRARY}
-        ${MATH_LIB_LINK_FLAGS}
-        Boost::serialization
-        Boost::mpi
-        ${MPI_CXX_LINK_FLAGS}
-        ${MPI_mpi_LIBRARY}
-)
-else()
-include_directories(${MPS_HEADER_PATH}
-        ${TENSOR_HEADER_PATH}
-        ${CUTENSOR_INCLUDE_DIR}
-        ${Boost_INCLUDE_DIR}
-        ${MPI_CXX_HEADER_DIR}
-)
-link_libraries(
-        CUDA::cublas_static
-        CUDA::cusolver_static
-        ${CUTENSOR_LIBRARY}
-        ${MATH_LIB_LINK_FLAGS}
-
-        Boost::serialization
-        Boost::mpi
-        ${MPI_CXX_LINK_FLAGS}
-        ${MPI_mpi_LIBRARY}
-)
-endif()
+    include_directories(${MPS_HEADER_PATH}
+            ${TENSOR_HEADER_PATH}
+            ${hptt_INCLUDE_DIR}
+            ${MPI_CXX_HEADER_DIR}
+    )
+    link_libraries(
+            ${hptt_LIBRARY}
+            ${MATH_LIB_LINK_FLAGS}
+            ${MPI_CXX_LINK_FLAGS}
+            ${MPI_mpi_LIBRARY}
+    )
+else ()
+    include_directories(${MPS_HEADER_PATH}
+            ${TENSOR_HEADER_PATH}
+            ${CUTENSOR_INCLUDE_DIR}
+            ${MPI_CXX_HEADER_DIR}
+    )
+    link_libraries(
+            CUDA::cublas_static
+            CUDA::cusolver_static
+            ${CUTENSOR_LIBRARY}
+            ${MATH_LIB_LINK_FLAGS}
+            ${MPI_CXX_LINK_FLAGS}
+            ${MPI_mpi_LIBRARY}
+    )
+endif ()
 
 
-if(NOT QLMPS_USE_GPU)
-  add_executable(dmrg src/dmrg.cpp src/myutil.cpp src/operators.cpp)
-else()
-  add_executable(dmrg src/dmrg.cpp src/myutil.cpp src/operators.cpp)
-endif()
-
-
+add_executable(dmrg src/dmrg.cpp src/myutil.cpp src/operators.cpp)
 add_executable(mpogen src/mpogen.cpp src/operators.cpp)
 #add_executable(dmrg1 src/dmrg1.cpp src/myutil.cpp src/operators.cpp)
-add_executable(dmrg1FM src/vmps1FM.cpp src/myutil.cpp src/operators.cpp)
+add_executable(vmps1FM src/vmps1FM.cpp src/myutil.cpp src/operators.cpp)
 add_executable(vmps src/vmps.cpp src/myutil.cpp src/operators.cpp)
 add_executable(measure1 src/measure1.cpp src/myutil.cpp src/operators.cpp)
-add_executable(measureS src/measure_total_spin.cpp src/myutil.cpp src/operators.cpp)
-#add_executable(measure2 src/measure2.cpp src/myutil.cpp src/operators.cpp)
-#add_executable(measure3 src/measure3.cpp src/myutil.cpp src/operators.cpp)
-#
-add_executable(measureSC src/measureSC.cpp src/myutil.cpp src/operators.cpp)
-#add_executable(measureSCxx src/measureSCxx.cpp src/myutil.cpp src/operators.cpp)
-#add_executable(measurePlasc src/measurePlaquetteDSC.cpp src/myutil.cpp src/operators.cpp)
-#add_executable(test1 src/test1_parallel.cpp src/myutil.cpp)
+if (NOT QLMPS_USE_GPU)
+    add_executable(measureS src/measure_total_spin.cpp src/myutil.cpp src/operators.cpp)
+    #add_executable(measure2 src/measure2.cpp src/myutil.cpp src/operators.cpp)
+    #add_executable(measure3 src/measure3.cpp src/myutil.cpp src/operators.cpp)
+    #
+    add_executable(measureSC src/measureSC.cpp src/myutil.cpp src/operators.cpp)
+    #add_executable(measureSCxx src/measureSCxx.cpp src/myutil.cpp src/operators.cpp)
+    #add_executable(measurePlasc src/measurePlaquetteDSC.cpp src/myutil.cpp src/operators.cpp)
+    #add_executable(test1 src/test1_parallel.cpp src/myutil.cpp)
+endif ()
 if (COMPILE_FIX_CODE)
     add_executable(move_center src/move_center.cpp src/myutil.cpp)
     add_executable(fix_update_renv src/fix_update_renv.cpp src/myutil.cpp)

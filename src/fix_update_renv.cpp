@@ -48,8 +48,6 @@ int main(int argc, char *argv[]){
   std::cout << "to = " << to << std::endl;
   std::cout << "thread = " << thread << std::endl;
 
-
-  qlten::hp_numeric::SetTensorTransposeNumThreads(thread);
   qlten::hp_numeric::SetTensorManipulationThreads(thread);
 
 
@@ -60,8 +58,6 @@ int main(int argc, char *argv[]){
 
   FiniteMPS<TenElemT, U1U1QN> mps(sites);
   MPO<Tensor> mpo(N);
-  const std::string kMpoPath = "mpo";
-  const std::string kMpoTenBaseName = "mpo_ten";
   for(size_t i= N-1; i > N-to;i--){
     std::string filename = kMpoPath + "/" +
         kMpoTenBaseName + std::to_string(i) + "." + kQLTenFileSuffix;
