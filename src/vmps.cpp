@@ -77,6 +77,7 @@ int main(int argc, char *argv[]) {
     params.Threads = max_threads;
   }
 
+#ifndef USE_GPU
   if (world.rank() == 0) {
     if (params.Threads > 2) {
       qlten::hp_numeric::SetTensorManipulationThreads(params.Threads - 2);
@@ -89,6 +90,7 @@ int main(int argc, char *argv[]) {
 
     qlten::hp_numeric::SetTensorManipulationThreads(params.Threads);
   }
+#endif
 
   std::vector<long unsigned int> stat_labs(N);
   size_t site_number_per_hole;

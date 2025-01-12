@@ -109,7 +109,9 @@ int main(int argc, char *argv[]) {
     }
   }
 
+#ifndef USE_GPU
   qlten::hp_numeric::SetTensorManipulationThreads(params.Threads);
+#endif
 
   if (IsPathExist(kMpsPath)) {
     if (N == GetNumofMps()) {

@@ -45,7 +45,9 @@ int main(int argc, char *argv[]) {
   clock_t startTime, endTime;
   startTime = clock();
 
+#ifndef USE_GPU
   qlten::hp_numeric::SetTensorManipulationThreads(params.Threads);
+#endif
 
   const SiteVec<TenElemT, U1U1QN> sites = SiteVec<TenElemT, U1U1QN>(N, pb_out);
   using FiniteMPST = qlmps::FiniteMPS<TenElemT, U1U1QN>;

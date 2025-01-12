@@ -184,7 +184,7 @@ endif()
 if(NOT QLMPS_USE_GPU)
   add_executable(dmrg src/dmrg.cpp src/myutil.cpp src/operators.cpp)
 else()
-  add_executable(dmrg src/dmrg_single.cpp src/myutil.cpp src/operators.cpp)
+  add_executable(dmrg src/dmrg.cpp src/myutil.cpp src/operators.cpp)
 endif()
 
 
