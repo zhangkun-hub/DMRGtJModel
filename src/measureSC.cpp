@@ -3,11 +3,10 @@
     for measure pair correlation function. memory optimized and parallel version.
     usage:
         mpirun -n 8 ./measureSC
-    note: processor number must be 4.
     Optional arguments:
       --start=
       --end=
-    Which are defaultly set as start=Lx/4, end = 3*Lx/4+2
+    Which are by default set as start=Lx/4, end = 3*Lx/4+2
 */
 #include "qlmps/qlmps.h"
 #include "qlten/qlten.h"
@@ -19,9 +18,6 @@
 #include "my_measure.h"
 #include "qlten/utility/timer.h"
 
-using std::cout;
-using std::endl;
-using std::vector;
 using FiniteMPST = qlmps::FiniteMPS<TenElemT, U1U1QN>;
 using qlmps::SiteVec;
 using qlmps::MeasureOneSiteOp;
@@ -93,13 +89,13 @@ int main(int argc, char *argv[]) {
 
   const SiteVec<TenElemT, U1U1QN> sites = SiteVec<TenElemT, U1U1QN>(N, pb_out);
   FiniteMPST mps(sites);
-
+#ifndef USE_GPU
   qlten::hp_numeric::SetTensorManipulationThreads(params.Threads);
-
+#endif USE_GPU
   Timer foursite_timer("measure four site operators");
-  vector<vector<size_t>> xx_fourpoint_sitessetF;
-  vector<vector<size_t>> yy_fourpoint_sitessetF;
-  vector<vector<size_t>> yx_fourpoint_sitessetF;
+  std::vector<std::vector<size_t>> xx_fourpoint_sitessetF;
+  std::vector<std::vector<size_t>> yy_fourpoint_sitessetF;
+  std::vector<std::vector<size_t>> yx_fourpoint_sitessetF;
   std::vector<size_t> Tx(Lx * Ly), Ty(Lx * Ly);
   for (size_t i = 0; i < Lx * Ly; ++i) {
     size_t y = i % Ly, x = i / Ly;
@@ -114,14 +110,14 @@ int main(int argc, char *argv[]) {
     auto site1F = beginx * Ly + y;
     for (size_t x = beginx + 2; x < endx; x = x + 1) {
       auto site2F = x * Ly + y;
-      vector<size_t> xxsites = {site1F, Tx[site1F], site2F, Tx[site2F]};
+      std::vector<size_t> xxsites = {site1F, Tx[site1F], site2F, Tx[site2F]};
       xx_fourpoint_sitessetF.push_back(xxsites);
 
-      vector<size_t> yysites = {site1F, Ty[site1F], site2F, Ty[site2F]};
+      std::vector<size_t> yysites = {site1F, Ty[site1F], site2F, Ty[site2F]};
       sort(yysites.begin(), yysites.end());
       yy_fourpoint_sitessetF.push_back(yysites);
 
-      vector<size_t> yxsites = {site1F, Ty[site1F], site2F, Tx[site2F]};
+      std::vector<size_t> yxsites = {site1F, Ty[site1F], site2F, Tx[site2F]};
       sort(yxsites.begin(), yxsites.end());
       yx_fourpoint_sitessetF.push_back(yxsites);
     }
@@ -139,28 +135,31 @@ int main(int argc, char *argv[]) {
     file_name_postfix = "";
   }
 
+  if (mpi_size > 8) {
+    std::cout << "too many MPI processes. Set -np 8" << std::endl;
+  }
   if (rank == 0) {
     MeasureElectronPhonon4PointFunction(mps, sc_phys_ops_a, yy_fourpoint_sitessetF, Ly, "scsyya" + file_name_postfix);
-  } else if (rank == 1) {
+  } else if (rank == 1 % mpi_size) {
     MeasureElectronPhonon4PointFunction(mps, sc_phys_ops_b, yy_fourpoint_sitessetF, Ly, "scsyyb" + file_name_postfix);
-  } else if (rank == 2) {
+  } else if (rank == 2 % mpi_size) {
     MeasureElectronPhonon4PointFunction(mps, sc_phys_ops_c, yy_fourpoint_sitessetF, Ly, "scsyyc" + file_name_postfix);
-  } else if (rank == 3) {
+  } else if (rank == 3 % mpi_size) {
     MeasureElectronPhonon4PointFunction(mps, sc_phys_ops_d, yy_fourpoint_sitessetF, Ly, "scsyyd" + file_name_postfix);
-  } else if (rank == 4) {
+  } else if (rank == 4 % mpi_size) {
     MeasureElectronPhonon4PointFunction(mps, sc_phys_ops_a, yx_fourpoint_sitessetF, Ly, "scsyxa" + file_name_postfix);
-  } else if (rank == 5) {
+  } else if (rank == 5 % mpi_size) {
     MeasureElectronPhonon4PointFunction(mps, sc_phys_ops_b, yx_fourpoint_sitessetF, Ly, "scsyxb" + file_name_postfix);
-  } else if (rank == 6) {
+  } else if (rank == 6 % mpi_size) {
     MeasureElectronPhonon4PointFunction(mps, sc_phys_ops_c, yx_fourpoint_sitessetF, Ly, "scsyxc" + file_name_postfix);
-  } else if (rank == 7) {
+  } else if (rank == 7 % mpi_size) {
     MeasureElectronPhonon4PointFunction(mps, sc_phys_ops_d, yx_fourpoint_sitessetF, Ly, "scsyxd" + file_name_postfix);
   }
-  cout << "measured SC correlation function.<====" << endl;
+  std::cout << "measured SC correlation function.<====" << std::endl;
   foursite_timer.PrintElapsed();
 
   endTime = clock();
-  cout << "CPU Time : " << (double) (endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
+  std::cout << "CPU Time : " << (double) (endTime - startTime) / CLOCKS_PER_SEC << "s" << std::endl;
   MPI_Finalize();
   return 0;
 

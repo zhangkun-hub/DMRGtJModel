@@ -65,8 +65,9 @@ int main(int argc, char *argv[]) {
       stat_labs[i] = 0;
     }
   }
-
+#ifndef USE_GPU
   qlten::hp_numeric::SetTensorManipulationThreads(params.Threads);
+#endif
   qlmps::FiniteVMPSSweepParams sweep_params(
       params.Sweeps,
       params.Dmin, params.Dmax, params.CutOff,

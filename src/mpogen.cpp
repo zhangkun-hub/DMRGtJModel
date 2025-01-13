@@ -47,13 +47,12 @@ int main(int argc, char *argv[]) {
     ConstructtJMPOGenerator(mpo_gen, lattice, model_params);
   }
 
-
+#ifndef USE_GPU
   qlten::hp_numeric::SetTensorManipulationThreads(params.Threads);
+#endif
   qlmps::MPO<Tensor> mpo = mpo_gen.Gen();
   cout << "MPO generated." << endl;
 
-  const std::string kMpoPath = "mpo";
-  const std::string kMpoTenBaseName = "mpo_ten";
   if (!IsPathExist(kMpoPath)) {
     CreatPath(kMpoPath);
   }
