@@ -5,7 +5,7 @@
 #include <cstdlib>
 #include <vector>
 #include <tuple>
-#include <assert.h>
+#include <cassert>
 
 using std::vector;
 using std::tuple;

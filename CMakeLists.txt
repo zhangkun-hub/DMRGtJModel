@@ -150,8 +150,7 @@ if (NOT QLMPS_USE_GPU)
     link_libraries(
             ${hptt_LIBRARY}
             ${MATH_LIB_LINK_FLAGS}
-            ${MPI_CXX_LINK_FLAGS}
-            ${MPI_mpi_LIBRARY}
+            MPI::MPI_CXX
     )
 else ()
     include_directories(${MPS_HEADER_PATH}
@@ -164,22 +163,21 @@ else ()
             CUDA::cusolver_static
             ${CUTENSOR_LIBRARY}
             ${MATH_LIB_LINK_FLAGS}
-            ${MPI_CXX_LINK_FLAGS}
-            ${MPI_mpi_LIBRARY}
+            MPI::MPI_CXX
     )
 endif ()
 
+add_library(common_objects OBJECT src/myutil.cpp src/operators.cpp)
 
-add_executable(dmrg src/dmrg.cpp src/myutil.cpp src/operators.cpp)
-add_executable(mpogen src/mpogen.cpp src/operators.cpp)
-#add_executable(dmrg1 src/dmrg1.cpp src/myutil.cpp src/operators.cpp)
-add_executable(vmps1FM src/vmps1FM.cpp src/myutil.cpp src/operators.cpp)
-add_executable(vmps src/vmps.cpp src/myutil.cpp src/operators.cpp)
-add_executable(measure1 src/measure1.cpp src/myutil.cpp src/operators.cpp)
-add_executable(measureSC src/measureSC.cpp src/myutil.cpp src/operators.cpp)
+add_executable(dmrg src/dmrg.cpp $<TARGET_OBJECTS:common_objects>)
+add_executable(mpogen src/mpogen.cpp $<TARGET_OBJECTS:common_objects>)
+add_executable(vmps1FM src/vmps1FM.cpp $<TARGET_OBJECTS:common_objects>)
+add_executable(vmps src/vmps.cpp $<TARGET_OBJECTS:common_objects>)
+add_executable(measure1 src/measure1.cpp $<TARGET_OBJECTS:common_objects>)
+add_executable(measureSC src/measureSC.cpp $<TARGET_OBJECTS:common_objects>)
 
 if (NOT QLMPS_USE_GPU)
-    add_executable(measureS src/measure_total_spin.cpp src/myutil.cpp src/operators.cpp)
+    add_executable(measureS src/measure_total_spin.cpp $<TARGET_OBJECTS:common_objects>)
     #add_executable(measure2 src/measure2.cpp src/myutil.cpp src/operators.cpp)
     #add_executable(measure3 src/measure3.cpp src/myutil.cpp src/operators.cpp)
     #

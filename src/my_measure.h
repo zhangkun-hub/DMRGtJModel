@@ -51,110 +51,6 @@ size_t FindLeftBoundary(FiniteMPS<TenElemT, QNT> &mps,
 }
 
 /**
-Measure a single one-site operator on all sites of the finite MPS (uniform hilbert space).
-Memory are optimized and the input mps should be a empty mps.
-The disk data will not change when and after measuring.
-
-@tparam TenElemT Type of the tensor element.
-@tparam QNT Quantum number type.
-
-@param mps To-be-measured MPS.
-@param op The single one-site operator.
-@param res_file_basename The basename of the output file.
-*/
-template<typename TenElemT, typename QNT>
-MeasuRes<TenElemT> MeasureOneSiteOp(
-    FiniteMPS<TenElemT, QNT> &mps,
-    const std::string mps_path,
-    const QLTensor<TenElemT, QNT> &op,
-    const std::string &res_file_basename
-) {
-  size_t N = mps.size();
-  size_t res_num = N;
-  MeasuRes<TenElemT> measu_res;
-  measu_res.reserve(res_num);
-
-  //Find the canonical center. We suppose the center = first site which is not complete orthogonal transformation + 1
-  const size_t left_boundary = FindLeftBoundary(mps);
-  const size_t initial_center = left_boundary + 1;
-  //below we suppose sites[0] == 0
-  for (size_t i = initial_center; i > 0; i--) {
-    mps.RightCanonicalizeTen(i);
-  }
-
-  for (size_t site = 0; site < N; site++) {
-    if (site == 0) {
-      measu_res.push_back(OneSiteOpAvg(mps[site], op, site, N));
-      continue;
-    }
-
-    const size_t last_site = site - 1;
-    if (site > initial_center) {
-      mps.LoadTen(site, GenMPSTenName(mps_path, site));
-    }
-    mps.LeftCanonicalizeTen(last_site);
-    mps.dealloc(last_site);
-
-    measu_res.push_back(OneSiteOpAvg(mps[site], op, site, N));
-    std::cout << "measured site " << site << "\n";
-  }
-  mps.dealloc(N - 1);
-  DumpMeasuRes(measu_res, res_file_basename);
-  return measu_res;
-}
-
-
-template<typename TenElemT, typename QNT>
-MeasuResSet<TenElemT> MeasureOneSiteOp(
-    FiniteMPS<TenElemT, QNT> &mps,
-    const std::string mps_path,
-    const std::vector<QLTensor<TenElemT, QNT>> &ops,
-    const std::vector<std::string> &res_file_basenames
-) {
-  size_t N = mps.size();
-  auto op_num = ops.size();
-  MeasuResSet<TenElemT> measu_res_set(op_num);
-  for (auto &measu_res : measu_res_set) {
-    measu_res = MeasuRes<TenElemT>(N);
-  }
-
-  //Find the canonical center. We suppose the center = first site which is not complete orthogonal transformation + 1
-  const size_t left_boundary = FindLeftBoundary(mps);
-  const size_t initial_center = left_boundary + 1;
-  //below we suppose sites[0] == 0
-  for (size_t i = initial_center; i > 0; i--) {
-    mps.RightCanonicalizeTen(i);
-  }
-
-  for (size_t site = 0; site < N; site++) {
-    if (site == 0) {
-      for (size_t j = 0; j < op_num; ++j) {
-        measu_res_set[j][site] = OneSiteOpAvg(mps[site], ops[j], site, N);
-      }
-      continue;
-    }
-
-    const size_t last_site = site - 1;
-    if (site > initial_center) {
-      mps.LoadTen(site, GenMPSTenName(mps_path, site));
-    }
-    mps.LeftCanonicalizeTen(last_site);
-    mps.dealloc(last_site);
-
-    for (size_t j = 0; j < op_num; ++j) {
-      measu_res_set[j][site] = OneSiteOpAvg(mps[site], ops[j], site, N);
-    }
-    std::cout << "measured site " << site << "\n";
-  }
-  mps.dealloc(N - 1);
-  for (size_t i = 0; i < op_num; ++i) {
-    DumpMeasuRes(measu_res_set[i], res_file_basenames[i]);
-  }
-  return measu_res_set;
-}
-
-
-/**
 Measure a list of one-site operators on specified sites of the finite MPS.
 
 @tparam TenElemT Type of the tensor element.
@@ -249,8 +145,7 @@ inline MeasuRes<TenElemT> MeasureTwoSiteOp(
     const std::vector<MeasureGroupTask> &measure_tasks,
     const std::string &res_file_basename,
     const MPI_Comm &comm,
-    const QLTensor<TenElemT, QNT> &inst = QLTensor<TenElemT, QNT
-    >()
+    const QLTensor<TenElemT, QNT> &inst = QLTensor<TenElemT, QNT>()
 ) {
   int mpi_rank, mpi_size;
   MPI_Comm_rank(comm, &mpi_rank);
@@ -739,7 +634,7 @@ inline MeasuRes<TenElemT> MeasureElectronPhonon4PointFunctionGroup(
     FiniteMPS<TenElemT, QNT> &mps, //input and output mps is empty
     const std::vector<QLTensor<TenElemT, QNT>> &phys_ops,
     const std::vector<std::vector<size_t>> &sites_set,
-    const size_t Ly,//usually called Np in hxwang's program
+    const size_t Ly,
     const size_t initial_center
 ) {
   assert(mps.empty());

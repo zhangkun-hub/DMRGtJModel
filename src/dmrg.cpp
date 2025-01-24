@@ -3,7 +3,7 @@
 * Author: Hao-Xin Wang <wanghx18@mails.tsinghua.edu.cn>
 * Creation Date: 2023-04-1
 *
-* Description: Single processor DMRG for t-J model with t_2 and J_2. DMRG style code
+* Description: DMRG for t-J model with t_2 and J_2. Renormalized operator realization.
 */
 
 
