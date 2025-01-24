@@ -33,9 +33,9 @@ int main(int argc, char *argv[]) {
   std::cout << "to = " << to << std::endl;
   std::cout << "thread = " << thread << std::endl;
 
-  qlten::hp_numeric::SetTensorTransposeNumThreads(thread);
+#ifndef USE_GPU
   qlten::hp_numeric::SetTensorManipulationThreads(thread);
-
+#endif
   const size_t N = GetNumofMps();
   const string temp_path = kRuntimeTempPath;
   const SiteVec<TenElemT, U1U1QN> sites = SiteVec<TenElemT, U1U1QN>(N, pb_out);
