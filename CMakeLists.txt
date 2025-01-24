@@ -174,7 +174,7 @@ add_executable(mpogen src/mpogen.cpp $<TARGET_OBJECTS:common_objects>)
 add_executable(vmps1FM src/vmps1FM.cpp $<TARGET_OBJECTS:common_objects>)
 add_executable(vmps src/vmps.cpp $<TARGET_OBJECTS:common_objects>)
 add_executable(measure1 src/measure1.cpp $<TARGET_OBJECTS:common_objects>)
-add_executable(measureSC src/measureSC.cpp $<TARGET_OBJECTS:common_objects>)
+add_executable(measureSC src/measureSC_fix_ref.cpp $<TARGET_OBJECTS:common_objects>)
 
 if (NOT QLMPS_USE_GPU)
     add_executable(measureS src/measure_total_spin.cpp $<TARGET_OBJECTS:common_objects>)

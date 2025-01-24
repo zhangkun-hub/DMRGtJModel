@@ -9,7 +9,7 @@
 #define TJMODEL_SRC_MY_MEASURE_H
 
 #include "qlmps/one_dim_tn/mps/finite_mps/finite_mps.h"    // FiniteMPS
-#include "qlmps/one_dim_tn/mps/finite_mps/finite_mps_measu.h"
+#include "qlmps/one_dim_tn/mps/finite_mps/finite_mps_measu_memory.h"
 #include "qlten/qlten.h"
 
 #include <string>
@@ -595,7 +595,6 @@ inline MeasuRes<TenElemT> MeasureElectronPhonon4PointFunction(
     auto measure_res_group = MeasureElectronPhonon4PointFunctionGroup(mps,
                                                                       phys_ops,
                                                                       sites_set_group,
-                                                                      Ly,
                                                                       left_boundary + 1
     );
     measure_res.insert(measure_res.end(), measure_res_group.begin(), measure_res_group.end());
@@ -634,7 +633,6 @@ inline MeasuRes<TenElemT> MeasureElectronPhonon4PointFunctionGroup(
     FiniteMPS<TenElemT, QNT> &mps, //input and output mps is empty
     const std::vector<QLTensor<TenElemT, QNT>> &phys_ops,
     const std::vector<std::vector<size_t>> &sites_set,
-    const size_t Ly,
     const size_t initial_center
 ) {
   assert(mps.empty());
