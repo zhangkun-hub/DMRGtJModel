@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
   std::string mps_path = kMpsPath;
   mps.LoadTen(from, GenMPSTenName(mps_path, from));
   if (to < from) {
-    for (int i = from - 1; i >= to; i--) {
+    for (int i = from - 1; i >= int(to); i--) {
       mps.LoadTen(i, GenMPSTenName(mps_path, i));
       mps.RightCanonicalizeTen(i + 1);
       std::cout << "Right canonical tensor " << i + 1 << std::endl;

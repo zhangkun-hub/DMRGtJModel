@@ -43,7 +43,6 @@ add_definitions(-Wall -g)
 
 option(QLMPS_USE_GPU "Use GPU" OFF)
 
-
 if (QLMPS_USE_GPU)
     set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/Modules/") # find cutensor
 
@@ -60,7 +59,6 @@ if (QLMPS_USE_GPU)
     set(CMAKE_CUDA_ARCHITECTURES 70 80) # For V100 & A100, adjust if needed
     set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -lineinfo -Xcompiler=-fPIC")
 
-
     find_package(CUTENSOR REQUIRED)
 
     file(GLOB_RECURSE TEST_SOURCES src/*.cpp)
@@ -73,96 +71,59 @@ else ()
     message(STATUS "HPTT Lib : " "${hptt_LIBRARY}")
 endif ()
 
-
-if (APPLE AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
-    if (CMAKE_CXX_COMPILER_ID MATCHES "Intel")
-        set(MATH_LIB_COMPILE_FLAGS "-I$ENV{MKLROOT}/include")
-        #Need test
-        set(MATH_LIB_LINK_FLAGS $ENV{MKLROOT}/lib/libmkl_intel_lp64.a $ENV{MKLROOT}/lib/libmkl_intel_thread.a $ENV{MKLROOT}/lib/libmkl_core.a -liomp5 -lpthread -lm -ldl)
-    endif ()
-    if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-        set(MATH_LIB_COMPILE_FLAGS -m64 -I$ENV{MKLROOT}/include)
-        # May not work
-        set(MATH_LIB_LINK_FLAGS $ENV{MKLROOT}/lib/libmkl_intel_lp64.a $ENV{MKLROOT}/lib/libmkl_intel_thread.a $ENV{MKLROOT}/lib/libmkl_core.a -L$ENV{MKLROOT}/lib -L$ENV{CMPLR_ROOT}/mac/compiler/lib/ -liomp5 -lpthread -lm -ldl)
-    endif ()
-    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        set(MATH_LIB_COMPILE_FLAGS -m64 -I$ENV{MKLROOT}/include)
-        # Note as of Intel oneAPI 2021.2, "source /opt/intel/oneapi/compiler/latest/env/vars.sh"
-        set(MATH_LIB_LINK_FLAGS $ENV{MKLROOT}/lib/libmkl_intel_lp64.a $ENV{MKLROOT}/lib/libmkl_intel_thread.a $ENV{MKLROOT}/lib/libmkl_core.a -L$ENV{MKLROOT}/lib -L$ENV{CMPLR_ROOT}/mac/compiler/lib/ -Wl, -rpath $ENV{CMPLR_ROOT}/mac/compiler/lib/libiomp5.dylib -liomp5 -lpthread -lm -ldl)
-    endif ()
-elseif (APPLE) #ARM
+if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
+    set(BLA_VENDOR Intel10_64lp)   #FOR VENDOR CHOICE: https://cmake.org/cmake/help/latest/module/FindBLAS.html
+    set(BLAS_INCLUDE_DIR "$ENV{MKLROOT}/include")
+elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "arm64") # (e.g., Apple Silicon)
     add_definitions(-DUSE_OPENBLAS)
     set(BLA_VENDOR OpenBLAS)
-    #        FIND_PACKAGE(BLAS REQUIRED)
-    #        FIND_PACKAGE(LAPACK REQUIRED)
-    set(OpenBLAS_ROOT "/opt/homebrew/opt/openblas/")
+    set(OpenBLAS_ROOT "/opt/homebrew/opt/openblas/") #work for homebrew installed openblas in MacOSX
     set(Lapack_ROOT "/opt/homebrew/opt/lapack")
-    message(${OpenBLAS_ROOT})
-    set(OpenBLAS_INCLUDE_DIRS "${OpenBLAS_ROOT}/include")
-    set(OpenBLAS_LIBRARIES "${OpenBLAS_ROOT}/lib/libblas.dylib")
-    message(${OpenBLAS_LIBRARIES})
-    set(MATH_LIB_COMPILE_FLAGS -I${OpenBLAS_INCLUDE_DIRS} -pthread)
-    set(MATH_LIB_LINK_FLAGS ${OpenBLAS_LIBRARIES} ${OpenBLAS_ROOT}/lib/liblapack.dylib -lm -lpthread -ldl -fopenmp -lclapack)
-
-elseif (UNIX)
-    set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "~/.local/")
-    message("CMAKE_MODULE_PATH=${CMAKE_MODULE_PATH}")
-
-    #UNIX include APPLE, but we except it here
-    if (CMAKE_CXX_COMPILER_ID MATCHES "Intel")
-        set(MATH_LIB_COMPILE_FLAGS "-I$ENV{MKLROOT}/include")
-        set(MATH_LIB_LINK_FLAGS -Wl,--start-group $ENV{MKLROOT}/lib/intel64/libmkl_intel_lp64.a $ENV{MKLROOT}/lib/intel64/libmkl_intel_thread.a $ENV{MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -liomp5 -lpthread -lm -ldl)
-    endif ()
-    if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-        set(MATH_LIB_COMPILE_FLAGS -m64 -I$ENV{MKLROOT}/include)
-        # Link the Intel's OpenMP library to avoid performance issue when the library calls the MKL's gesdd function.
-        set(MATH_LIB_LINK_FLAGS -Wl,--start-group $ENV{MKLROOT}/lib/intel64/libmkl_intel_lp64.a $ENV{MKLROOT}/lib/intel64/libmkl_intel_thread.a $ENV{MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -L$ENV{MKLROOT}/lib/intel64 -liomp5 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_rt -lmkl_core -lpthread -Wl,--no-as-needed -ldl)
-    endif ()
-    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        set(MATH_LIB_COMPILE_FLAGS -m64 -I$ENV{MKLROOT}/include)
-        set(MATH_LIB_LINK_FLAGS -Wl,--start-group $ENV{MKLROOT}/lib/intel64/libmkl_intel_lp64.a $ENV{MKLROOT}/lib/intel64/libmkl_intel_thread.a $ENV{MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -L$ENV{MKLROOT}/lib/intel64 -liomp5 -lpthread -lm -ldl)
-    endif ()
+    set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${OpenBLAS_ROOT} ${Lapack_ROOT}) # For find
+    set(BLAS_INCLUDE_DIR "${OpenBLAS_ROOT}/include")
 endif ()
 
+FIND_PACKAGE(BLAS REQUIRED)
+FIND_PACKAGE(LAPACK REQUIRED)
+find_package(MPI REQUIRED)
+find_package(OpenMP REQUIRED)
 
 find_path(TENSOR_HEADER_PATH "qlten")
 find_path(MPS_HEADER_PATH "qlmps")
 find_package(hptt)
-find_package(MPI REQUIRED)
-#set omp flag
-if (CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
-    set(OMP_FLAGS -qopenmp)
-elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    set(OMP_FLAGS -fopenmp)
-elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    set(OMP_FLAGS -fopenmp)
-endif ()
 
-
-add_compile_options(${MATH_LIB_COMPILE_FLAGS} ${OMP_FLAGS})
 
 if (NOT QLMPS_USE_GPU)
-    include_directories(${MPS_HEADER_PATH}
-            ${TENSOR_HEADER_PATH}
-            ${hptt_INCLUDE_DIR}
+    include_directories(
             ${MPI_CXX_HEADER_DIR}
+            ${BLAS_INCLUDE_DIR}
+            ${hptt_INCLUDE_DIR}
+            ${TENSOR_HEADER_PATH}
+            ${MPS_HEADER_PATH}
+
     )
     link_libraries(
             ${hptt_LIBRARY}
-            ${MATH_LIB_LINK_FLAGS}
+            BLAS::BLAS
+            LAPACK::LAPACK
+            OpenMP::OpenMP_CXX
             MPI::MPI_CXX
     )
 else ()
-    include_directories(${MPS_HEADER_PATH}
-            ${TENSOR_HEADER_PATH}
-            ${CUTENSOR_INCLUDE_DIR}
+    include_directories(
+            ${BLAS_INCLUDE_DIR}
             ${MPI_CXX_HEADER_DIR}
+            ${CUTENSOR_INCLUDE_DIR}
+            ${TENSOR_HEADER_PATH}
+            ${MPS_HEADER_PATH}
     )
     link_libraries(
             CUDA::cublas_static
             CUDA::cusolver_static
             ${CUTENSOR_LIBRARY}
-            ${MATH_LIB_LINK_FLAGS}
+            BLAS::BLAS
+            LAPACK::LAPACK
+            OpenMP::OpenMP_CXX
             MPI::MPI_CXX
     )
 endif ()

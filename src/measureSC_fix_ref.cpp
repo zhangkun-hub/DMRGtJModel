@@ -2,7 +2,7 @@
     measureSC.cpp
     for measure pair correlation function. memory optimized and parallel version.
     usage:
-        mpirun -n 8 ./measureSC
+        mpirun -n 8 ./measureSC --start=start_site
 */
 #include "qlmps/qlmps.h"
 #include "qlten/qlten.h"
@@ -66,9 +66,9 @@ int main(int argc, char *argv[]) {
   clock_t startTime, endTime;
   startTime = clock();
 
-  size_t beginx;
+  size_t start;
   size_t endx;
-  bool start_argument_has = Parser(argc, argv, beginx, endx);
+  bool start_argument_has = Parser(argc, argv, start, endx);
 
   CaseParams params(argv[1]);
 
@@ -80,8 +80,8 @@ int main(int argc, char *argv[]) {
   }
 
   if (!start_argument_has) {
-    beginx = Lx / 4;
-    endx = beginx + Lx / 2 + 2;
+    start = 0;
+    endx = start + Lx / 2 + 2;
   }
 
   OperatorInitial();
@@ -92,7 +92,7 @@ int main(int argc, char *argv[]) {
   qlten::hp_numeric::SetTensorManipulationThreads(params.Threads);
 #endif USE_GPU
   Timer foursite_timer("measure four site operators");
-  std::array<size_t, 2> ref_site{0, 1}; // y bond
+  std::array<size_t, 2> ref_site{start, start + 1}; // y bond
   std::vector<std::array<size_t, 2>> target_x_bond;
   std::vector<std::array<size_t, 2>> target_y_bond;
   std::vector<size_t> Tx(Lx * Ly), Ty(Lx * Ly);
@@ -107,7 +107,7 @@ int main(int argc, char *argv[]) {
     for (size_t y = 0; y < Ly; y++) {
       size_t target_site0 = x * Ly + y;
       size_t target_site1 = Ty[target_site0];
-      if (target_site0 > 1 && target_site1 > 1) {
+      if (target_site0 > start + 1 && target_site1 > start + 1) {
         if (params.Geometry == "OBC" && y < Ly - 1) {
           target_y_bond.push_back({target_site0, target_site1});
         } else if (params.Geometry == "Cylinder") {
@@ -122,7 +122,7 @@ int main(int argc, char *argv[]) {
     for (size_t y = 0; y < Ly; y++) {
       size_t target_site0 = x * Ly + y;
       size_t target_site1 = Tx[target_site0];
-      if (target_site0 > 1 && target_site1 > 1) {
+      if (target_site0 > start + 1 && target_site1 > start + 1) {
         target_x_bond.push_back({target_site0, target_site1});
       }
     }
