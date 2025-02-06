@@ -133,7 +133,7 @@ int main(int argc, char *argv[]) {
   std::array<Tensor, 4> sc_phys_ops_c = {bupc, bdnc, bdna, bupa}; //<B>=<C>
   std::array<Tensor, 4> sc_phys_ops_d = {bdnc, bupc, bdna, bupa}; //<A>=<D>
 
-  std::string file_name_postfix = "_fix_refer";
+  std::string file_name_postfix = "_fix_refer" + std::to_string(ref_site[0]);
 
   if (rank == 0) {
     auto measure_res = MeasureFourSiteOpGroup(mps, kMpsPath, sc_phys_ops_a, ref_site, target_y_bond, f);

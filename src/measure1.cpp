@@ -21,7 +21,10 @@ int main(int argc, char *argv[]) {
   CaseParams params(argv[1]);
   size_t Lx = params.Lx;
   size_t N = Lx * params.Ly;
-
+  size_t ref_site = 0;
+  if (argc > 2) {
+    ref_site = std::atoi(argv[2]);
+  }
   clock_t startTime, endTime;
   startTime = clock();
 
@@ -39,15 +42,14 @@ int main(int argc, char *argv[]) {
   one_site_timer.PrintElapsed();
 
   Timer two_site_timer("measure two site operators");
-  size_t ref_site = 0;
   auto szsz_corr = MeasureTwoSiteOpGroup(mps, kMpsPath, sz, sz, ref_site);
-  DumpMeasuRes(szsz_corr, "sz0sz");
+  DumpMeasuRes(szsz_corr, "sz" + std::to_string(ref_site) + "sz");
   auto spsm_corr = MeasureTwoSiteOpGroup(mps, kMpsPath, sp, sm, ref_site);
-  DumpMeasuRes(spsm_corr, "sp0sm");
+  DumpMeasuRes(spsm_corr, "sp" + std::to_string(ref_site) + "sm");
   auto smsp_corr = MeasureTwoSiteOpGroup(mps, kMpsPath, sm, sp, ref_site);
-  DumpMeasuRes(smsp_corr, "sm0sp");
+  DumpMeasuRes(smsp_corr, "sm" + std::to_string(ref_site) + "sp");
   auto nn_corr = MeasureTwoSiteOpGroup(mps, kMpsPath, nf, nf, ref_site);
-  DumpMeasuRes(nn_corr, "nf0nf");
+  DumpMeasuRes(nn_corr, "nf" + std::to_string(ref_site) + "nf");
   auto single_particle_corr1 = MeasureTwoSiteOpGroup(mps, kMpsPath, bdna, bdnc, ref_site, f);
   auto single_particle_corr2 = MeasureTwoSiteOpGroup(mps, kMpsPath, bdnc, bdna, ref_site, f);
   auto single_particle_corr3 = MeasureTwoSiteOpGroup(mps, kMpsPath, bupa, bupc, ref_site, f);

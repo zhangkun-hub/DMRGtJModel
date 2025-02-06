@@ -126,9 +126,8 @@ int main(int argc, char *argv[]) {
     cout << "No mps directory." << endl;
     qlmps::DirectStateInitMps(mps, stat_labs);
     cout << "Initial mps as direct product state." << endl;
-    mps.Dump(kMpsPath, true);
     if (rank == 0)
-      MPI_Abort(comm, -1);
+      mps.Dump(kMpsPath, true);
   }
 
   double e0;
@@ -139,11 +138,7 @@ int main(int argc, char *argv[]) {
         params.Dmin, params.Dmax, params.CutOff,
         qlmps::LanczosParams(params.LanczErr, params.MaxLanczIter)
     );
-    if (rank == 0) {
-      e0 = qlmps::TwoSiteFiniteVMPS(mps, mpo, sweep_params);
-    } else {
-      e0 = qlmps::TwoSiteFiniteVMPS(mps, mpo, sweep_params, comm);
-    }
+    e0 = qlmps::TwoSiteFiniteVMPS(mps, mpo, sweep_params, comm);
   } else {
     for (size_t i = 0; i < DMRG_time; i++) {
       size_t D = input_D_set[i];
@@ -155,11 +150,7 @@ int main(int argc, char *argv[]) {
           D, D, params.CutOff,
           qlmps::LanczosParams(params.LanczErr, MaxLanczIterSet[i])
       );
-      if (rank == 0) {
-        e0 = qlmps::TwoSiteFiniteVMPS(mps, mpo, sweep_params);
-      } else {
-        e0 = qlmps::TwoSiteFiniteVMPS(mps, mpo, sweep_params, comm);
-      }
+      e0 = qlmps::TwoSiteFiniteVMPS(mps, mpo, sweep_params, comm);
     }
   }
 

@@ -43,9 +43,9 @@ add_definitions(-Wall -g)
 
 option(QLMPS_USE_GPU "Use GPU" OFF)
 
-if (QLMPS_USE_GPU)
-    set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/Modules/") # find cutensor
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/") # HPTT/cutensor
 
+if (QLMPS_USE_GPU)
     add_definitions(-DUSE_GPU=1)
 
     # Enable CUDA language support
@@ -66,8 +66,7 @@ if (QLMPS_USE_GPU)
     # Treat all .cc files in tests/ as CUDA files
     set_source_files_properties(${TEST_SOURCES} PROPERTIES LANGUAGE CUDA)
 else ()
-    find_path(hptt_INCLUDE_DIR "hptt.h")
-    find_library(hptt_LIBRARY "libhptt.a")
+    find_package(hptt)
     message(STATUS "HPTT Lib : " "${hptt_LIBRARY}")
 endif ()
 
@@ -90,41 +89,34 @@ find_package(OpenMP REQUIRED)
 
 find_path(TENSOR_HEADER_PATH "qlten")
 find_path(MPS_HEADER_PATH "qlmps")
-find_package(hptt)
 
+
+# Intel MKL multi-thread may conflict with other compiler's OpenMP
+# Close OpenMP if using MKL with other compiler
+if (NOT BLA_VENDOR STREQUAL "Intel10_64lp" OR CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
+    find_package(OpenMP REQUIRED)
+    link_libraries(OpenMP::OpenMP_CXX)
+endif ()
+
+include_directories(
+        ${BLAS_INCLUDE_DIR}
+        ${MPI_CXX_HEADER_DIR}
+        ${TENSOR_HEADER_PATH}
+        ${MPS_HEADER_PATH})
+
+link_libraries(BLAS::BLAS
+        LAPACK::LAPACK
+        MPI::MPI_CXX)
 
 if (NOT QLMPS_USE_GPU)
-    include_directories(
-            ${MPI_CXX_HEADER_DIR}
-            ${BLAS_INCLUDE_DIR}
-            ${hptt_INCLUDE_DIR}
-            ${TENSOR_HEADER_PATH}
-            ${MPS_HEADER_PATH}
-
-    )
-    link_libraries(
-            ${hptt_LIBRARY}
-            BLAS::BLAS
-            LAPACK::LAPACK
-            OpenMP::OpenMP_CXX
-            MPI::MPI_CXX
-    )
+    include_directories(${hptt_INCLUDE_DIR})
+    link_libraries(${hptt_LIBRARY})
 else ()
-    include_directories(
-            ${BLAS_INCLUDE_DIR}
-            ${MPI_CXX_HEADER_DIR}
-            ${CUTENSOR_INCLUDE_DIR}
-            ${TENSOR_HEADER_PATH}
-            ${MPS_HEADER_PATH}
-    )
+    include_directories(${CUTENSOR_INCLUDE_DIR})
     link_libraries(
             CUDA::cublas_static
             CUDA::cusolver_static
             ${CUTENSOR_LIBRARY}
-            BLAS::BLAS
-            LAPACK::LAPACK
-            OpenMP::OpenMP_CXX
-            MPI::MPI_CXX
     )
 endif ()
 
