@@ -8,7 +8,7 @@ using qlten::TenIndexDirType;
 
 #ifdef USE_REAL
 using TenElemT = qlten::QLTEN_Double;
-#elifdef USE_COMPLEX
+#else
 using TenElemT = qlten::QLTEN_Complex;
 #endif
 using U1U1QN = qlten::special_qn::U1U1QN;

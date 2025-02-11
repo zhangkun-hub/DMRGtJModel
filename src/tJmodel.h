@@ -51,7 +51,7 @@ inline void ConstructtJMPOGenerator(
 #ifdef USE_REAL
     std::cout << "phi : " << phi << " is non-zero. Please use complex code!" << std::endl;
     exit(1);
-#elifdef USE_COMPLEX
+#else
     using Complex = std::complex<double>;
     for (const Link &link : lattice.direct_nn_links) {
       size_t site1 = std::get<0>(link);
