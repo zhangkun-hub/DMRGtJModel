@@ -3,7 +3,7 @@
 #include <time.h>
 #include <stdlib.h>
 #include "gqdouble.h"
-#include "operators.h"
+#include "tJ_operators.h"
 #include "params_case.h"
 #include "myutil.h"
 #include "squarelattice.h"
@@ -53,7 +53,6 @@ int main(int argc, char *argv[]) {
 
   clock_t startTime, endTime;
   startTime = clock();
-  OperatorInitial();
   const SiteVec<TenElemT, U1U1QN> sites = SiteVec<TenElemT, U1U1QN>(N, pb_out);
   qlmps::MPO<Tensor> mpo(N);
   if (IsPathExist(kMpoPath)) {

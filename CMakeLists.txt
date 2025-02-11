@@ -6,6 +6,14 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/")
 set(CMAKE_SOURCE_DIR "${PROJECT_SOURCE_DIR}/src/")
 
+option(RealCode "tensor element type double or complex" OFF)
+if (RealCode)
+    add_definitions(-DUSE_REAL=1)
+else ()
+    add_definitions(-DUSE_COMPLEX=1)
+endif ()
+
+
 # Build type.
 if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
@@ -120,7 +128,7 @@ else ()
     )
 endif ()
 
-add_library(common_objects OBJECT src/myutil.cpp src/operators.cpp)
+add_library(common_objects OBJECT src/myutil.cpp src/tJ_operators.cpp)
 
 add_executable(dmrg src/dmrg.cpp $<TARGET_OBJECTS:common_objects>)
 add_executable(mpogen src/mpogen.cpp $<TARGET_OBJECTS:common_objects>)

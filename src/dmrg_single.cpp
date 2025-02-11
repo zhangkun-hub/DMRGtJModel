@@ -12,7 +12,7 @@
 #include <time.h>
 #include <stdlib.h>
 #include "gqdouble.h"
-#include "operators.h"
+#include "tJ_operators.h"
 #include "params_case.h"
 #include "myutil.h"
 #include "squarelattice.h"

@@ -8,7 +8,7 @@
 #include "qlten/qlten.h"
 #include <ctime>
 #include "gqdouble.h"
-#include "operators.h"
+#include "tJ_operators.h"
 #include "params_case.h"
 #include "myutil.h"
 #include "qlten/utility/timer.h"
@@ -84,7 +84,7 @@ int main(int argc, char *argv[]) {
     endx = start + Lx / 2 + 2;
   }
 
-  OperatorInitial();
+  tJOperators ops;
 
   const SiteVec<TenElemT, U1U1QN> sites = SiteVec<TenElemT, U1U1QN>(N, pb_out);
   FiniteMPST mps(sites);
@@ -128,13 +128,13 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  std::array<Tensor, 4> sc_phys_ops_a = {bupc, bdnc, bupa, bdna};
-  std::array<Tensor, 4> sc_phys_ops_b = {bdnc, bupc, bupa, bdna};
-  std::array<Tensor, 4> sc_phys_ops_c = {bupc, bdnc, bdna, bupa}; //<B>=<C>
-  std::array<Tensor, 4> sc_phys_ops_d = {bdnc, bupc, bdna, bupa}; //<A>=<D>
+  std::array<Tensor, 4> sc_phys_ops_a = {ops.bupc, ops.bdnc, ops.bupa, ops.bdna};
+  std::array<Tensor, 4> sc_phys_ops_b = {ops.bdnc, ops.bupc, ops.bupa, ops.bdna};
+  std::array<Tensor, 4> sc_phys_ops_c = {ops.bupc, ops.bdnc, ops.bdna, ops.bupa}; //<B>=<C>
+  std::array<Tensor, 4> sc_phys_ops_d = {ops.bdnc, ops.bupc, ops.bdna, ops.bupa}; //<A>=<D>
 
   std::string file_name_postfix = "_fix_refer" + std::to_string(ref_site[0]);
-
+  Tensor f = ops.f;
   if (rank == 0) {
     auto measure_res = MeasureFourSiteOpGroup(mps, kMpsPath, sc_phys_ops_a, ref_site, target_y_bond, f);
     DumpMeasuRes(measure_res, "scsyya" + file_name_postfix);

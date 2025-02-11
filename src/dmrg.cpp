@@ -11,7 +11,7 @@
 #include "qlten/qlten.h"
 #include <ctime>
 #include "gqdouble.h"
-#include "operators.h"
+#include "tJ_operators.h"
 #include "params_case.h"
 #include "myutil.h"
 #include "squarelattice.h"
@@ -36,7 +36,6 @@ int main(int argc, char *argv[]) {
   }
   clock_t startTime, endTime;
   startTime = clock();
-  OperatorInitial();
   const SiteVec<TenElemT, U1U1QN> sites = SiteVec<TenElemT, U1U1QN>(N, pb_out);
   std::vector<size_t> input_D_set;
   bool has_bond_dimension_parameter = ParserBondDimension(

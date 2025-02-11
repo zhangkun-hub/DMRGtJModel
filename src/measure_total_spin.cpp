@@ -11,7 +11,7 @@
 #include "qlten/qlten.h"
 #include <ctime>
 #include "gqdouble.h"
-#include "operators.h"
+#include "tJ_operators.h"
 #include "params_case.h"
 #include "myutil.h"
 #include "my_measure.h"
@@ -57,11 +57,11 @@ int main(int argc, char *argv[]) {
   qlmps::MPOGenerator<TenElemT, U1U1QN> Sp(sites, qn0);
   qlmps::MPOGenerator<TenElemT, U1U1QN> Sm(sites, qn0);
   qlmps::MPOGenerator<TenElemT, U1U1QN> Sz(sites, qn0);
-  OperatorInitial();
+  tJOperators ops;
   for (size_t i = 0; i < N; i++) {
-    Sz.AddTerm(1.0, sz, i);
-    Sp.AddTerm(1.0, sp, i);
-    Sm.AddTerm(1.0, sm, i);
+    Sz.AddTerm(1.0, ops.sz, i);
+    Sp.AddTerm(1.0, ops.sp, i);
+    Sm.AddTerm(1.0, ops.sm, i);
   }
   auto Sz_mpo = Sz.Gen();
   auto Sp_mpo = Sp.Gen();

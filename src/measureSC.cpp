@@ -12,7 +12,7 @@
 #include "qlten/qlten.h"
 #include <ctime>
 #include "gqdouble.h"
-#include "operators.h"
+#include "tJ_operators.h"
 #include "params_case.h"
 #include "myutil.h"
 #include "my_measure.h"
@@ -85,7 +85,7 @@ int main(int argc, char *argv[]) {
     endx = beginx + Lx / 2 + 2;
   }
 
-  OperatorInitial();
+  tJOperators ops;
 
   const SiteVec<TenElemT, U1U1QN> sites = SiteVec<TenElemT, U1U1QN>(N, pb_out);
   FiniteMPST mps(sites);
@@ -123,10 +123,10 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  std::vector<Tensor> sc_phys_ops_a = {bupc, bdnc, bupa, bdna};
-  std::vector<Tensor> sc_phys_ops_b = {bdnc, bupc, bupa, bdna};
-  std::vector<Tensor> sc_phys_ops_c = {bupc, bdnc, bdna, bupa}; //<B>=<C>
-  std::vector<Tensor> sc_phys_ops_d = {bdnc, bupc, bdna, bupa}; //<A>=<D>
+  std::vector<Tensor> sc_phys_ops_a = {ops.bupc, ops.bdnc, ops.bupa, ops.bdna};
+  std::vector<Tensor> sc_phys_ops_b = {ops.bdnc, ops.bupc, ops.bupa, ops.bdna};
+  std::vector<Tensor> sc_phys_ops_c = {ops.bupc, ops.bdnc, ops.bdna, ops.bupa}; //<B>=<C>
+  std::vector<Tensor> sc_phys_ops_d = {ops.bdnc, ops.bupc, ops.bdna, ops.bupa}; //<A>=<D>
 
   std::string file_name_postfix;
   if (start_argument_has) {

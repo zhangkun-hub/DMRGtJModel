@@ -10,7 +10,7 @@
 #include "qlmps/qlmps.h"
 #include "qlten/qlten.h"
 #include "gqdouble.h"
-#include "operators.h"
+#include "tJ_operators.h"
 #include "params_case.h"
 #include "myutil.h"
 
@@ -31,24 +31,26 @@ int main(int argc, char *argv[]) {
 #ifndef USE_GPU
   qlten::hp_numeric::SetTensorManipulationThreads(params.Threads);
 #endif
-  OperatorInitial();
+  tJOperators ops;
   const SiteVec<TenElemT, U1U1QN> sites = SiteVec<TenElemT, U1U1QN>(N, pb_out);
 
   using FiniteMPST = qlmps::FiniteMPS<TenElemT, U1U1QN>;
   FiniteMPST mps(sites);
 
   Timer one_site_timer("measure one site operators");
-  MeasureOneSiteOp(mps, kMpsPath, {nf, sz}, {"nf", "sz"});
+  MeasureOneSiteOp(mps, kMpsPath, {ops.nf, ops.sz}, {"nf", "sz"});
   one_site_timer.PrintElapsed();
 
+  auto f = ops.f;
+  auto bdna = ops.bdna, bupa = ops.bupa, bdnc = ops.bdnc, bupc = ops.bupc;
   Timer two_site_timer("measure two site operators");
-  auto szsz_corr = MeasureTwoSiteOpGroup(mps, kMpsPath, sz, sz, ref_site);
+  auto szsz_corr = MeasureTwoSiteOpGroup(mps, kMpsPath, ops.sz, ops.sz, ref_site);
   DumpMeasuRes(szsz_corr, "sz" + std::to_string(ref_site) + "sz");
-  auto spsm_corr = MeasureTwoSiteOpGroup(mps, kMpsPath, sp, sm, ref_site);
+  auto spsm_corr = MeasureTwoSiteOpGroup(mps, kMpsPath, ops.sp, ops.sm, ref_site);
   DumpMeasuRes(spsm_corr, "sp" + std::to_string(ref_site) + "sm");
-  auto smsp_corr = MeasureTwoSiteOpGroup(mps, kMpsPath, sm, sp, ref_site);
+  auto smsp_corr = MeasureTwoSiteOpGroup(mps, kMpsPath, ops.sm, ops.sp, ref_site);
   DumpMeasuRes(smsp_corr, "sm" + std::to_string(ref_site) + "sp");
-  auto nn_corr = MeasureTwoSiteOpGroup(mps, kMpsPath, nf, nf, ref_site);
+  auto nn_corr = MeasureTwoSiteOpGroup(mps, kMpsPath, ops.nf, ops.nf, ref_site);
   DumpMeasuRes(nn_corr, "nf" + std::to_string(ref_site) + "nf");
   auto single_particle_corr1 = MeasureTwoSiteOpGroup(mps, kMpsPath, bdna, bdnc, ref_site, f);
   auto single_particle_corr2 = MeasureTwoSiteOpGroup(mps, kMpsPath, bdnc, bdna, ref_site, f);

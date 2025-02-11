@@ -6,7 +6,7 @@
 #include "gqdouble.h"
 #include "squarelattice.h"
 #include "params_case.h"
-#include "operators.h"
+#include "tJ_operators.h"
 
 inline void ConstructtJMPOGenerator(
     qlmps::MPOGenerator<TenElemT, U1U1QN> &mpo_gen,
@@ -18,111 +18,115 @@ inline void ConstructtJMPOGenerator(
       J = model_params.J,
       J2 = model_params.J2,
       phi = model_params.phi;
-  OperatorInitial();
+  tJOperators ops;
   if (std::fabs(phi) < 1e-15) {
-    for (const Link &link: lattice.nearest_neighbor_links) {
+    for (const Link &link : lattice.nearest_neighbor_links) {
       size_t site1 = std::get<0>(link);
       size_t site2 = std::get<1>(link);
       assert(site1 < site2);
-      mpo_gen.AddTerm(-t1, {bupc, bupa}, {site1, site2}, {f});
-      mpo_gen.AddTerm(-t1, {bdnc, bdna}, {site1, site2}, {f});
-      mpo_gen.AddTerm(-t1, {bupa, bupc}, {site1, site2}, {f});
-      mpo_gen.AddTerm(-t1, {bdna, bdnc}, {site1, site2}, {f});
-      mpo_gen.AddTerm(J, {sz, sz}, {site1, site2});
-      mpo_gen.AddTerm(J / 2, {sp, sm}, {site1, site2});
-      mpo_gen.AddTerm(J / 2, {sm, sp}, {site1, site2});
-      mpo_gen.AddTerm(-J / 4, {nf, nf}, {site1, site2});
+      mpo_gen.AddTerm(-t1, {ops.bupc, ops.bupa}, {site1, site2}, {ops.f});
+      mpo_gen.AddTerm(-t1, {ops.bdnc, ops.bdna}, {site1, site2}, {ops.f});
+      mpo_gen.AddTerm(-t1, {ops.bupa, ops.bupc}, {site1, site2}, {ops.f});
+      mpo_gen.AddTerm(-t1, {ops.bdna, ops.bdnc}, {site1, site2}, {ops.f});
+      mpo_gen.AddTerm(J, {ops.sz, ops.sz}, {site1, site2});
+      mpo_gen.AddTerm(J / 2, {ops.sp, ops.sm}, {site1, site2});
+      mpo_gen.AddTerm(J / 2, {ops.sm, ops.sp}, {site1, site2});
+      mpo_gen.AddTerm(-J / 4, {ops.nf, ops.nf}, {site1, site2});
     }
 
-    for (const Link &link: lattice.next_nearest_neighbor_links) {
+    for (const Link &link : lattice.next_nearest_neighbor_links) {
       size_t site1 = std::get<0>(link);
       size_t site2 = std::get<1>(link);
       assert(site1 < site2);
-      mpo_gen.AddTerm(-t2, {bupc, bupa}, {site1, site2}, {f});
-      mpo_gen.AddTerm(-t2, {bdnc, bdna}, {site1, site2}, {f});
-      mpo_gen.AddTerm(-t2, {bupa, bupc}, {site1, site2}, {f});
-      mpo_gen.AddTerm(-t2, {bdna, bdnc}, {site1, site2}, {f});
-      mpo_gen.AddTerm(J2, {sz, sz}, {site1, site2});
-      mpo_gen.AddTerm(J2 / 2, {sp, sm}, {site1, site2});
-      mpo_gen.AddTerm(J2 / 2, {sm, sp}, {site1, site2});
-      mpo_gen.AddTerm(-J2 / 4, {nf, nf}, {site1, site2});
+      mpo_gen.AddTerm(-t2, {ops.bupc, ops.bupa}, {site1, site2}, {ops.f});
+      mpo_gen.AddTerm(-t2, {ops.bdnc, ops.bdna}, {site1, site2}, {ops.f});
+      mpo_gen.AddTerm(-t2, {ops.bupa, ops.bupc}, {site1, site2}, {ops.f});
+      mpo_gen.AddTerm(-t2, {ops.bdna, ops.bdnc}, {site1, site2}, {ops.f});
+      mpo_gen.AddTerm(J2, {ops.sz, ops.sz}, {site1, site2});
+      mpo_gen.AddTerm(J2 / 2, {ops.sp, ops.sm}, {site1, site2});
+      mpo_gen.AddTerm(J2 / 2, {ops.sm, ops.sp}, {site1, site2});
+      mpo_gen.AddTerm(-J2 / 4, {ops.nf, ops.nf}, {site1, site2});
     }
   } else {
+#ifdef USE_REAL
+    std::cout << "phi : " << phi << " is non-zero. Please use complex code!" << std::endl;
+    exit(1);
+#elifdef USE_COMPLEX
     using Complex = std::complex<double>;
-    for (const Link &link: lattice.direct_nn_links) {
+    for (const Link &link : lattice.direct_nn_links) {
       size_t site1 = std::get<0>(link);
       size_t site2 = std::get<1>(link);
       assert(site1 < site2);
-      mpo_gen.AddTerm(-t1, {bupc, bupa}, {site1, site2}, {f});
-      mpo_gen.AddTerm(-t1, {bdnc, bdna}, {site1, site2}, {f});
-      mpo_gen.AddTerm(-t1, {bupa, bupc}, {site1, site2}, {f});
-      mpo_gen.AddTerm(-t1, {bdna, bdnc}, {site1, site2}, {f});
-      mpo_gen.AddTerm(J, {sz, sz}, {site1, site2});
-      mpo_gen.AddTerm(J / 2, {sp, sm}, {site1, site2});
-      mpo_gen.AddTerm(J / 2, {sm, sp}, {site1, site2});
-      mpo_gen.AddTerm(-J / 4, {nf, nf}, {site1, site2});
+      mpo_gen.AddTerm(-t1, {ops.bupc, ops.bupa}, {site1, site2}, {ops.f});
+      mpo_gen.AddTerm(-t1, {ops.bdnc, ops.bdna}, {site1, site2}, {ops.f});
+      mpo_gen.AddTerm(-t1, {ops.bupa, ops.bupc}, {site1, site2}, {ops.f});
+      mpo_gen.AddTerm(-t1, {ops.bdna, ops.bdnc}, {site1, site2}, {ops.f});
+      mpo_gen.AddTerm(J, {ops.sz, ops.sz}, {site1, site2});
+      mpo_gen.AddTerm(J / 2, {ops.sp, ops.sm}, {site1, site2});
+      mpo_gen.AddTerm(J / 2, {ops.sm, ops.sp}, {site1, site2});
+      mpo_gen.AddTerm(-J / 4, {ops.nf, ops.nf}, {site1, site2});
     }
 
-    for (const Link &link: lattice.wind_nn_links) {
+    for (const Link &link : lattice.wind_nn_links) {
       // y of site1 == 0, y of site2 == Ly - 1
       size_t site1 = std::get<0>(link);
       size_t site2 = std::get<1>(link);
       assert(site1 < site2);
-      mpo_gen.AddTerm(-t1 * std::exp(Complex(0, phi)), {bupc, bupa}, {site1, site2}, {f});
-      mpo_gen.AddTerm(-t1 * std::exp(Complex(0, -phi)), {bdnc, bdna}, {site1, site2}, {f});
-      mpo_gen.AddTerm(-t1 * std::exp(Complex(0, -phi)), {bupa, bupc}, {site1, site2}, {f});
-      mpo_gen.AddTerm(-t1 * std::exp(Complex(0, phi)), {bdna, bdnc}, {site1, site2}, {f});
-      mpo_gen.AddTerm(J, {sz, sz}, {site1, site2});
-      mpo_gen.AddTerm(J / 2 * std::exp(Complex(0, 2 * phi)), {sp, sm}, {site1, site2});
-      mpo_gen.AddTerm(J / 2 * std::exp(Complex(0, -2 * phi)), {sm, sp}, {site1, site2});
-      mpo_gen.AddTerm(-J / 4, {nf, nf}, {site1, site2});
+      mpo_gen.AddTerm(-t1 * std::exp(Complex(0, phi)), {ops.bupc, ops.bupa}, {site1, site2}, {ops.f});
+      mpo_gen.AddTerm(-t1 * std::exp(Complex(0, -phi)), {ops.bdnc, ops.bdna}, {site1, site2}, {ops.f});
+      mpo_gen.AddTerm(-t1 * std::exp(Complex(0, -phi)), {ops.bupa, ops.bupc}, {site1, site2}, {ops.f});
+      mpo_gen.AddTerm(-t1 * std::exp(Complex(0, phi)), {ops.bdna, ops.bdnc}, {site1, site2}, {ops.f});
+      mpo_gen.AddTerm(J, {ops.sz, ops.sz}, {site1, site2});
+      mpo_gen.AddTerm(J / 2 * std::exp(Complex(0, 2 * phi)), {ops.sp, ops.sm}, {site1, site2});
+      mpo_gen.AddTerm(J / 2 * std::exp(Complex(0, -2 * phi)), {ops.sm, ops.sp}, {site1, site2});
+      mpo_gen.AddTerm(-J / 4, {ops.nf, ops.nf}, {site1, site2});
     }
 
-    for (const Link &link: lattice.direct_nnn_links) {
+    for (const Link &link : lattice.direct_nnn_links) {
       size_t site1 = std::get<0>(link);
       size_t site2 = std::get<1>(link);
       assert(site1 < site2);
-      mpo_gen.AddTerm(-t2, {bupc, bupa}, {site1, site2}, {f});
-      mpo_gen.AddTerm(-t2, {bdnc, bdna}, {site1, site2}, {f});
-      mpo_gen.AddTerm(-t2, {bupa, bupc}, {site1, site2}, {f});
-      mpo_gen.AddTerm(-t2, {bdna, bdnc}, {site1, site2}, {f});
-      mpo_gen.AddTerm(J2, {sz, sz}, {site1, site2});
-      mpo_gen.AddTerm(J2 / 2, {sp, sm}, {site1, site2});
-      mpo_gen.AddTerm(J2 / 2, {sm, sp}, {site1, site2});
-      mpo_gen.AddTerm(-J2 / 4, {nf, nf}, {site1, site2});
+      mpo_gen.AddTerm(-t1, {ops.bupc, ops.bupa}, {site1, site2}, {ops.f});
+      mpo_gen.AddTerm(-t1, {ops.bdnc, ops.bdna}, {site1, site2}, {ops.f});
+      mpo_gen.AddTerm(-t1, {ops.bupa, ops.bupc}, {site1, site2}, {ops.f});
+      mpo_gen.AddTerm(-t1, {ops.bdna, ops.bdnc}, {site1, site2}, {ops.f});
+      mpo_gen.AddTerm(J, {ops.sz, ops.sz}, {site1, site2});
+      mpo_gen.AddTerm(J / 2, {ops.sp, ops.sm}, {site1, site2});
+      mpo_gen.AddTerm(J / 2, {ops.sm, ops.sp}, {site1, site2});
+      mpo_gen.AddTerm(-J / 4, {ops.nf, ops.nf}, {site1, site2});
     }
 
-    for (const Link &link: lattice.wind_nnn_links_1) {
+    for (const Link &link : lattice.wind_nnn_links_1) {
       // y of site1 == Ly - 1, y of site2 == 0
       size_t site1 = std::get<0>(link);
       size_t site2 = std::get<1>(link);
       assert(site1 < site2);
-      mpo_gen.AddTerm(-t2 * std::exp(Complex(0, -phi)), {bupc, bupa}, {site1, site2}, {f});
-      mpo_gen.AddTerm(-t2 * std::exp(Complex(0, phi)), {bdnc, bdna}, {site1, site2}, {f});
-      mpo_gen.AddTerm(-t2 * std::exp(Complex(0, phi)), {bupa, bupc}, {site1, site2}, {f});
-      mpo_gen.AddTerm(-t2 * std::exp(Complex(0, -phi)), {bdna, bdnc}, {site1, site2}, {f});
-      mpo_gen.AddTerm(J2, {sz, sz}, {site1, site2});
-      mpo_gen.AddTerm(J2 / 2 * std::exp(Complex(0, -2 * phi)), {sp, sm}, {site1, site2});
-      mpo_gen.AddTerm(J2 / 2 * std::exp(Complex(0, 2 * phi)), {sm, sp}, {site1, site2});
-      mpo_gen.AddTerm(-J2 / 4, {nf, nf}, {site1, site2});
+      mpo_gen.AddTerm(-t2 * std::exp(Complex(0, -phi)), {ops.bupc, ops.bupa}, {site1, site2}, {ops.f});
+      mpo_gen.AddTerm(-t2 * std::exp(Complex(0, phi)), {ops.bdnc, ops.bdna}, {site1, site2}, {ops.f});
+      mpo_gen.AddTerm(-t2 * std::exp(Complex(0, phi)), {ops.bupa, ops.bupc}, {site1, site2}, {ops.f});
+      mpo_gen.AddTerm(-t2 * std::exp(Complex(0, -phi)), {ops.bdna, ops.bdnc}, {site1, site2}, {ops.f});
+      mpo_gen.AddTerm(J2, {ops.sz, ops.sz}, {site1, site2});
+      mpo_gen.AddTerm(J2 / 2 * std::exp(Complex(0, -2 * phi)), {ops.sp, ops.sm}, {site1, site2});
+      mpo_gen.AddTerm(J2 / 2 * std::exp(Complex(0, 2 * phi)), {ops.sm, ops.sp}, {site1, site2});
+      mpo_gen.AddTerm(-J2 / 4, {ops.nf, ops.nf}, {site1, site2});
     }
 
-    for (const Link &link: lattice.wind_nnn_links_2) {
+    for (const Link &link : lattice.wind_nnn_links_2) {
       // y of site1 == 0, y of site2 == Ly - 1
       size_t site1 = std::get<0>(link);
       size_t site2 = std::get<1>(link);
       assert(site1 < site2);
-      mpo_gen.AddTerm(-t2 * std::exp(Complex(0, phi)), {bupc, bupa}, {site1, site2}, {f});
-      mpo_gen.AddTerm(-t2 * std::exp(Complex(0, -phi)), {bdnc, bdna}, {site1, site2}, {f});
-      mpo_gen.AddTerm(-t2 * std::exp(Complex(0, -phi)), {bupa, bupc}, {site1, site2}, {f});
-      mpo_gen.AddTerm(-t2 * std::exp(Complex(0, phi)), {bdna, bdnc}, {site1, site2}, {f});
-      mpo_gen.AddTerm(J2, {sz, sz}, {site1, site2});
-      mpo_gen.AddTerm(J2 / 2 * std::exp(Complex(0, 2 * phi)), {sp, sm}, {site1, site2});
-      mpo_gen.AddTerm(J2 / 2 * std::exp(Complex(0, -2 * phi)), {sm, sp}, {site1, site2});
-      mpo_gen.AddTerm(-J2 / 4, {nf, nf}, {site1, site2});
+      mpo_gen.AddTerm(-t1 * std::exp(Complex(0, phi)), {ops.bupc, ops.bupa}, {site1, site2}, {ops.f});
+      mpo_gen.AddTerm(-t1 * std::exp(Complex(0, -phi)), {ops.bdnc, ops.bdna}, {site1, site2}, {ops.f});
+      mpo_gen.AddTerm(-t1 * std::exp(Complex(0, -phi)), {ops.bupa, ops.bupc}, {site1, site2}, {ops.f});
+      mpo_gen.AddTerm(-t1 * std::exp(Complex(0, phi)), {ops.bdna, ops.bdnc}, {site1, site2}, {ops.f});
+      mpo_gen.AddTerm(J, {ops.sz, ops.sz}, {site1, site2});
+      mpo_gen.AddTerm(J / 2 * std::exp(Complex(0, 2 * phi)), {ops.sp, ops.sm}, {site1, site2});
+      mpo_gen.AddTerm(J / 2 * std::exp(Complex(0, -2 * phi)), {ops.sm, ops.sp}, {site1, site2});
+      mpo_gen.AddTerm(-J / 4, {ops.nf, ops.nf}, {site1, site2});
     }
+#endif
   }
-
 }
 
 #endif //TJ_MODEL_H
