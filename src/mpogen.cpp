@@ -21,7 +21,6 @@ int main(int argc, char *argv[]) {
   model_params.Print();
   clock_t startTime, endTime;
   startTime = clock();
-  OperatorInitial();
   const SiteVec<TenElemT, U1U1QN> sites = SiteVec<TenElemT, U1U1QN>(N, pb_out);
   qlmps::MPOGenerator<TenElemT, U1U1QN> mpo_gen(sites, qn0);
 

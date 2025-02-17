@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
   FiniteMPST mps(sites);
 #ifndef USE_GPU
   qlten::hp_numeric::SetTensorManipulationThreads(params.Threads);
-#endif USE_GPU
+#endif
   Timer foursite_timer("measure four site operators");
   std::array<size_t, 2> ref_site{start, start + 1}; // y bond
   std::vector<std::array<size_t, 2>> target_x_bond;
