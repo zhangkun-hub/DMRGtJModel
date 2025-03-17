@@ -11,7 +11,7 @@
 #include "qlten/qlten.h"
 #include <time.h>
 #include <stdlib.h>
-#include "gqdouble.h"
+#include "tJ_hilbert_space.h"
 #include "tJ_operators.h"
 #include "params_case.h"
 #include "myutil.h"

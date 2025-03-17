@@ -2,7 +2,7 @@
 #define TJ_OPERATORS_H
 
 #include "qlten/qlten.h"
-#include "gqdouble.h"
+#include "tJ_hilbert_space.h"
 
 class tJOperators {
  public:

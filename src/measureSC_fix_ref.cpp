@@ -7,7 +7,7 @@
 #include "qlmps/qlmps.h"
 #include "qlten/qlten.h"
 #include <ctime>
-#include "gqdouble.h"
+#include "tJ_hilbert_space.h"
 #include "tJ_operators.h"
 #include "params_case.h"
 #include "myutil.h"

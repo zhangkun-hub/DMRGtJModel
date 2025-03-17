@@ -11,7 +11,7 @@
 * for the case start direction = r ,  start site = left site when do two site update.
 * TODO: still doesn't work. Find and fix bug(s).
 */
-#include "gqdouble.h"
+#include "tJ_hilbert_space.h"
 #include <time.h>
 #include <vector>
 #include <stdlib.h>     // system

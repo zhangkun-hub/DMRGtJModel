@@ -3,7 +3,7 @@
  *
  */
 
-#include "gqdouble.h"
+#include "tJ_hilbert_space.h"
 // #include "qlmps/algorithm/lanczos_solver.h"
 // #include "qlmps/algorithm/lanczos_solver_impl.h"
 #include "qlmps/qlmps.h"

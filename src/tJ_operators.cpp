@@ -18,8 +18,8 @@ tJOperators::tJOperators()
   // Initialize spin operators
   sz({0, 0}) = 0.5;
   sz({1, 1}) = -0.5;
-  sp({0, 1}) = 1.0;
-  sm({1, 0}) = 1.0;
+  sp({1, 0}) = 1.0;
+  sm({0, 1}) = 1.0;
   id({0, 0}) = 1;
   id({1, 1}) = 1;
   id({2, 2}) = 1;
@@ -30,18 +30,14 @@ tJOperators::tJOperators()
   f({2, 2}) = 1;
 
   // Initialize the boson operators
-  bupc({0, 2}) = 1;
-  bdnc({1, 2}) = 1;
-  bupa({2, 0}) = 1;
-  bdna({2, 1}) = 1;
+  bupc({2, 0}) = 1;
+  bdnc({2, 1}) = 1;
+  bupa({0, 2}) = 1;
+  bdna({1, 2}) = 1;
 
   // Initialize number operators
   nf({0, 0}) = 1;
   nf({1, 1}) = 1;
   nup({0, 0}) = 1;
   ndn({1, 1}) = 1;
-
-  // Initialize composite operators
-  bdnc_multi_bupa({1, 0}) = 1;
-  bupc_multi_bdna({0, 1}) = 1;
 }

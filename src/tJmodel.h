@@ -3,7 +3,7 @@
 
 #include "qlmps/one_dim_tn/mpo/mpo.h"
 #include "qlmps/one_dim_tn/mpo/mpogen/mpogen.h"
-#include "gqdouble.h"
+#include "tJ_hilbert_space.h"
 #include "squarelattice.h"
 #include "params_case.h"
 #include "tJ_operators.h"
