@@ -23,6 +23,9 @@ struct CaseParams : public CaseParamsParserBasic {
     J = ParseDouble("J");
     J2 = ParseDouble("J2");
     phi = ParseDouble("phi");
+#if SYM_LEVEL==0
+    mu = ParseDouble("mu");
+#endif
     Sweeps = ParseInt("Sweeps");
     Dmin = ParseInt("Dmin");
     Dmax = ParseInt("Dmax");
@@ -44,6 +47,9 @@ struct CaseParams : public CaseParamsParserBasic {
   double J;
   double J2;
   double phi;     // twist boundary condition, Phys. Rev. B 107, 075127 Eq.(5)
+#if SYM_LEVEL == 0
+  double mu;
+#endif
   size_t Sweeps;
   size_t Dmin;
   size_t Dmax;

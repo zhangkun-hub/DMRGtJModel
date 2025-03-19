@@ -84,7 +84,12 @@ int main(int argc, char *argv[]) {
     cout << "lattice construct" << std::endl;
     ConstructtJMPOGenerator(mpo_gen, lattice, model_params);
   }
-
+#if SYM_LEVEL == 0
+  tJOperators ops;
+  for (size_t i = 0; i < N; i++) {
+    mpo_gen.AddTerm(-params.mu, ops.nf, i);
+  }
+#endif
   auto mat_repr_mpo = mpo_gen.GenMatReprMPO();
   using FiniteMPST = qlmps::FiniteMPS<TenElemT, QNT>;
   FiniteMPST mps(sites);
