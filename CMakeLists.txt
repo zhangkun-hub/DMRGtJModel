@@ -13,6 +13,13 @@ else ()
     add_definitions(-DUSE_COMPLEX=1)
 endif ()
 
+option(HIGHER_SYMMETRY "particle number conservation." ON)
+if (HIGHER_SYMMETRY)
+    add_definitions(-DSYM_LEVEL=1)
+else ()
+    add_definitions(-DSYM_LEVEL=0)
+endif ()
+
 
 # Build type.
 if (NOT CMAKE_BUILD_TYPE)

@@ -21,8 +21,8 @@ int main(int argc, char *argv[]) {
   model_params.Print();
   clock_t startTime, endTime;
   startTime = clock();
-  const SiteVec<TenElemT, U1U1QN> sites = SiteVec<TenElemT, U1U1QN>(N, pb_out);
-  qlmps::MPOGenerator<TenElemT, U1U1QN> mpo_gen(sites, qn0);
+  const SiteVec<TenElemT, QNT> sites = SiteVec<TenElemT, QNT>(N, pb_out);
+  qlmps::MPOGenerator<TenElemT, QNT> mpo_gen(sites, qn0);
 
   if (Ly == 2) {
     SquareLadder lattice(Lx);

@@ -51,12 +51,12 @@ int main(int argc, char *argv[]) {
   qlten::hp_numeric::SetTensorManipulationThreads(params.Threads);
 #endif
 
-  const SiteVec<TenElemT, U1U1QN> sites = SiteVec<TenElemT, U1U1QN>(N, pb_out);
-  using FiniteMPST = qlmps::FiniteMPS<TenElemT, U1U1QN>;
+  const SiteVec<TenElemT, QNT> sites = SiteVec<TenElemT, QNT>(N, pb_out);
+  using FiniteMPST = qlmps::FiniteMPS<TenElemT, QNT>;
   FiniteMPST mps(sites);
-  qlmps::MPOGenerator<TenElemT, U1U1QN> Sp(sites, qn0);
-  qlmps::MPOGenerator<TenElemT, U1U1QN> Sm(sites, qn0);
-  qlmps::MPOGenerator<TenElemT, U1U1QN> Sz(sites, qn0);
+  qlmps::MPOGenerator<TenElemT, QNT> Sp(sites, qn0);
+  qlmps::MPOGenerator<TenElemT, QNT> Sm(sites, qn0);
+  qlmps::MPOGenerator<TenElemT, QNT> Sz(sites, qn0);
   tJOperators ops;
   for (size_t i = 0; i < N; i++) {
     Sz.AddTerm(1.0, ops.sz, i);

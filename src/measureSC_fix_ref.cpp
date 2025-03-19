@@ -13,7 +13,7 @@
 #include "myutil.h"
 #include "qlten/utility/timer.h"
 
-using FiniteMPST = qlmps::FiniteMPS<TenElemT, U1U1QN>;
+using FiniteMPST = qlmps::FiniteMPS<TenElemT, QNT>;
 using qlmps::SiteVec;
 using qlmps::MeasureFourSiteOpGroup;
 using qlmps::kMpsPath;
@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
 
   tJOperators ops;
 
-  const SiteVec<TenElemT, U1U1QN> sites = SiteVec<TenElemT, U1U1QN>(N, pb_out);
+  const SiteVec<TenElemT, QNT> sites = SiteVec<TenElemT, QNT>(N, pb_out);
   FiniteMPST mps(sites);
 #ifndef USE_GPU
   qlten::hp_numeric::SetTensorManipulationThreads(params.Threads);

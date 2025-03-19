@@ -13,7 +13,7 @@
 using namespace qlmps;
 using namespace qlten;
 using namespace std;
-using FiniteMPST = qlmps::FiniteMPS<TenElemT, U1U1QN>;
+using FiniteMPST = qlmps::FiniteMPS<TenElemT, QNT>;
 
 int Parser(const int argc, char *argv[],
            size_t &from,
@@ -38,9 +38,9 @@ int main(int argc, char *argv[]) {
 #endif
   const size_t N = GetNumofMps();
   const string temp_path = kRuntimeTempPath;
-  const SiteVec<TenElemT, U1U1QN> sites = SiteVec<TenElemT, U1U1QN>(N, pb_out);
+  const SiteVec<TenElemT, QNT> sites = SiteVec<TenElemT, QNT>(N, pb_out);
 
-  FiniteMPS<TenElemT, U1U1QN> mps(sites);
+  FiniteMPS<TenElemT, QNT> mps(sites);
 
   std::string mps_path = kMpsPath;
   mps.LoadTen(from, GenMPSTenName(mps_path, from));

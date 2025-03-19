@@ -28,7 +28,7 @@ int main(int argc, char *argv[]) {
   model_params.Print();
   clock_t startTime, endTime;
   startTime = clock();
-  const SiteVec<TenElemT, U1U1QN> sites = SiteVec<TenElemT, U1U1QN>(N, pb_out);
+  const SiteVec<TenElemT, QNT> sites = SiteVec<TenElemT, QNT>(N, pb_out);
   qlmps::MPO<Tensor> mpo(N);
   const std::string kMpoPath = "mpo";
   const std::string kMpoTenBaseName = "mpo_ten";
@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
     exit(0);
   }
 
-  using FiniteMPST = qlmps::FiniteMPS<TenElemT, U1U1QN>;
+  using FiniteMPST = qlmps::FiniteMPS<TenElemT, QNT>;
   FiniteMPST mps(sites);
 
   std::vector<long unsigned int> stat_labs(N);

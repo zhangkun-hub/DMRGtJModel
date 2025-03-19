@@ -9,7 +9,7 @@
 #include "tJ_operators.h"
 
 inline void ConstructtJMPOGenerator(
-    qlmps::MPOGenerator<TenElemT, U1U1QN> &mpo_gen,
+    qlmps::MPOGenerator<TenElemT, QNT> &mpo_gen,
     const SquareLattice &lattice,
     const tJModelParamters &model_params
 ) {

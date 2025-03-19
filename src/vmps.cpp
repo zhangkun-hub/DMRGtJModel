@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
 
   clock_t startTime, endTime;
   startTime = clock();
-  const SiteVec<TenElemT, U1U1QN> sites = SiteVec<TenElemT, U1U1QN>(N, pb_out);
+  const SiteVec<TenElemT, QNT> sites = SiteVec<TenElemT, QNT>(N, pb_out);
   qlmps::MPO<Tensor> mpo(N);
   if (IsPathExist(kMpoPath)) {
     for (size_t i = 0; i < mpo.size(); i++) {
@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) {
     exit(0);
   }
 
-  using FiniteMPST = qlmps::FiniteMPS<TenElemT, U1U1QN>;
+  using FiniteMPST = qlmps::FiniteMPS<TenElemT, QNT>;
   FiniteMPST mps(sites);
 
   if (params.Threads == 0) {

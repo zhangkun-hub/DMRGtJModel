@@ -32,9 +32,9 @@ int main(int argc, char *argv[]) {
   qlten::hp_numeric::SetTensorManipulationThreads(params.Threads);
 #endif
   tJOperators ops;
-  const SiteVec<TenElemT, U1U1QN> sites = SiteVec<TenElemT, U1U1QN>(N, pb_out);
+  const SiteVec<TenElemT, QNT> sites = SiteVec<TenElemT, QNT>(N, pb_out);
 
-  using FiniteMPST = qlmps::FiniteMPS<TenElemT, U1U1QN>;
+  using FiniteMPST = qlmps::FiniteMPS<TenElemT, QNT>;
   FiniteMPST mps(sites);
 
   Timer one_site_timer("measure one site operators");
