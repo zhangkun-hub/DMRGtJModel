@@ -111,8 +111,12 @@ int main(int argc, char *argv[]) {
         if (params.Geometry == "OBC" && y < Ly - 1) {
           target_y_bond.push_back({target_site0, target_site1});
         } else if (params.Geometry == "Cylinder") {
-          std::cout << "Please update the cylinder code here !" << std::endl;
-          exit(1);
+          if (y == 0) {
+            target_y_bond.push_back({target_site0, target_site1});
+            target_y_bond.push_back({target_site0, target_site0 + Ly - 1});
+          } else if (y < Ly - 1) {
+            target_y_bond.push_back({target_site0, target_site1});
+          }
         }
       }
     }
