@@ -20,6 +20,16 @@ using qlmps::kMpsPath;
 using qlmps::DumpMeasuRes;
 using qlten::Timer;
 
+void PerformMeasureSC(int rank,
+                      int mpi_size,
+                      size_t start,
+                      const CaseParams &params,
+                      const std::array<Tensor, 4> &sc_phys_ops_a,
+                      const std::array<Tensor, 4> &sc_phys_ops_b,
+                      const std::array<Tensor, 4> &sc_phys_ops_c,
+                      const std::array<Tensor, 4> &sc_phys_ops_d,
+                      const Tensor &f);
+
 // When used to measure, note if should not set start too small to exceed canonical center.
 bool Parser(const int argc, char *argv[],
             size_t &start,
@@ -80,18 +90,56 @@ int main(int argc, char *argv[]) {
   }
 
   if (!start_argument_has) {
-    start = 0;
+    start = 1; // default start site for pairing measurement
     endx = start + Lx / 2 + 2;
   }
 
   tJOperators ops;
 
-  const SiteVec<TenElemT, QNT> sites = SiteVec<TenElemT, QNT>(N, pb_out);
-  FiniteMPST mps(sites);
 #ifndef USE_GPU
   qlten::hp_numeric::SetTensorManipulationThreads(params.Threads);
 #endif
   Timer foursite_timer("measure four site operators");
+  std::array<Tensor, 4> sc_phys_ops_a = {ops.bupc, ops.bdnc, ops.bupa, ops.bdna};
+  std::array<Tensor, 4> sc_phys_ops_b = {ops.bdnc, ops.bupc, ops.bupa, ops.bdna};
+  std::array<Tensor, 4> sc_phys_ops_c = {ops.bupc, ops.bdnc, ops.bdna, ops.bupa}; //<B>=<C>, by spin inversion symmetry
+  std::array<Tensor, 4> sc_phys_ops_d = {ops.bdnc, ops.bupc, ops.bdna, ops.bupa}; //<A>=<D>, by spin inversion symmetry
+
+  PerformMeasureSC(rank, mpi_size, start, params, sc_phys_ops_a, sc_phys_ops_b, sc_phys_ops_c, sc_phys_ops_d, ops.f);
+
+  std::cout << "measured SC correlation function.<====" << std::endl;
+  foursite_timer.PrintElapsed();
+#if SYM_LEVEL == 0
+  /**
+   * Effectively measure local pairing:
+   * (A-B)/sqrt(2) gives the singlet pair
+   * (A+B)/sqrt(2) gives the triplet pair (except the boundary, boundary should count for an additional sign)
+   * which should degenerate with C and D if SU(2) symmetry is restored.
+   */
+  sc_phys_ops_a = {ops.id, ops.id, ops.bupa, ops.bdna};
+  sc_phys_ops_b = {ops.id, ops.id, ops.bdna, ops.bupa};
+  sc_phys_ops_c = {ops.id, ops.id, ops.bupa, ops.bupa};//triplet +1
+  sc_phys_ops_d = {ops.id, ops.id, ops.bdna, ops.bdna};//triplet -1
+  PerformMeasureSC(rank, mpi_size, 0, params, sc_phys_ops_a, sc_phys_ops_b, sc_phys_ops_c, sc_phys_ops_d, ops.f);
+#endif
+  endTime = clock();
+  std::cout << "CPU Time : " << (double) (endTime - startTime) / CLOCKS_PER_SEC << "s" << std::endl;
+  MPI_Finalize();
+  return 0;
+}
+void PerformMeasureSC(int rank,
+                      int mpi_size,
+                      size_t start,
+                      const CaseParams &params,
+                      const std::array<Tensor, 4> &sc_phys_ops_a,
+                      const std::array<Tensor, 4> &sc_phys_ops_b,
+                      const std::array<Tensor, 4> &sc_phys_ops_c,
+                      const std::array<Tensor, 4> &sc_phys_ops_d,
+                      const Tensor &f) {
+  const size_t Lx = params.Lx, Ly = params.Ly;
+  const size_t N = Lx * Ly;
+  const SiteVec<TenElemT, QNT> sites = SiteVec<TenElemT, QNT>(N, pb_out);
+  FiniteMPST mps(sites);
   std::array<size_t, 2> ref_site{start, start + 1}; // y bond
   std::vector<std::array<size_t, 2>> target_x_bond;
   std::vector<std::array<size_t, 2>> target_y_bond;
@@ -132,13 +180,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  std::array<Tensor, 4> sc_phys_ops_a = {ops.bupc, ops.bdnc, ops.bupa, ops.bdna};
-  std::array<Tensor, 4> sc_phys_ops_b = {ops.bdnc, ops.bupc, ops.bupa, ops.bdna};
-  std::array<Tensor, 4> sc_phys_ops_c = {ops.bupc, ops.bdnc, ops.bdna, ops.bupa}; //<B>=<C>
-  std::array<Tensor, 4> sc_phys_ops_d = {ops.bdnc, ops.bupc, ops.bdna, ops.bupa}; //<A>=<D>
-
   std::string file_name_postfix = "_fix_refer" + std::to_string(ref_site[0]);
-  Tensor f = ops.f;
   if (rank == 0) {
     auto measure_res = MeasureFourSiteOpGroup(mps, kMpsPath, sc_phys_ops_a, ref_site, target_y_bond, f);
     DumpMeasuRes(measure_res, "scsyya" + file_name_postfix);
@@ -171,11 +213,4 @@ int main(int argc, char *argv[]) {
     auto measure_res = MeasureFourSiteOpGroup(mps, kMpsPath, sc_phys_ops_d, ref_site, target_x_bond, f);
     DumpMeasuRes(measure_res, "scsyxd" + file_name_postfix);
   }
-  std::cout << "measured SC correlation function.<====" << std::endl;
-  foursite_timer.PrintElapsed();
-
-  endTime = clock();
-  std::cout << "CPU Time : " << (double) (endTime - startTime) / CLOCKS_PER_SEC << "s" << std::endl;
-  MPI_Finalize();
-  return 0;
 }
