@@ -3,7 +3,6 @@
 #include <ctime>
 #include <cstdlib>
 #include "tJ_hilbert_space.h"
-#include "tJ_operators.h"
 #include "params_case.h"
 #include "myutil.h"
 #include "squarelattice.h"
@@ -21,7 +20,7 @@ int main(int argc, char *argv[]) {
   model_params.Print();
   clock_t startTime, endTime;
   startTime = clock();
-  const SiteVec<TenElemT, QNT> sites = SiteVec<TenElemT, QNT>(N, pb_out);
+  const SiteVec<TenElemT, QNT> sites = tj_site.GenUniformSites<TenElemT>(N);
   qlmps::MPOGenerator<TenElemT, QNT> mpo_gen(sites, qn0);
 
   if (Ly == 2) {

@@ -11,7 +11,6 @@
 #include "qlten/qlten.h"
 #include <ctime>
 #include "tJ_hilbert_space.h"
-#include "tJ_operators.h"
 #include "params_case.h"
 #include "myutil.h"
 #include "squarelattice.h"
@@ -36,7 +35,7 @@ int main(int argc, char *argv[]) {
   }
   clock_t startTime, endTime;
   startTime = clock();
-  const SiteVec<TenElemT, QNT> sites = SiteVec<TenElemT, QNT>(N, pb_out);
+  const SiteVec<TenElemT, QNT> sites = tj_site.GenUniformSites<TenElemT>(N);
   std::vector<size_t> input_D_set;
   bool has_bond_dimension_parameter = ParserBondDimension(
       argc, argv,
@@ -85,7 +84,7 @@ int main(int argc, char *argv[]) {
     ConstructtJMPOGenerator(mpo_gen, lattice, model_params);
   }
 #if SYM_LEVEL == 0
-  tJOperators ops;
+  qlmps::tJOperators<TenElemT, QNT> ops;
   for (size_t i = 0; i < N; i++) {
     mpo_gen.AddTerm(-params.mu, ops.nf, i);
   }

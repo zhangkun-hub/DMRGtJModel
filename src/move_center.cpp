@@ -38,7 +38,7 @@ int main(int argc, char *argv[]) {
 #endif
   const size_t N = GetNumofMps();
   const string temp_path = kRuntimeTempPath;
-  const SiteVec<TenElemT, QNT> sites = SiteVec<TenElemT, QNT>(N, pb_out);
+  const SiteVec<TenElemT, QNT> sites = tj_site.GenUniformSites<TenElemT>(N);
 
   FiniteMPS<TenElemT, QNT> mps(sites);
 

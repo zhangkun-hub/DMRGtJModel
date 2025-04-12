@@ -10,7 +10,6 @@
 #include "qlmps/qlmps.h"
 #include "qlten/qlten.h"
 #include "tJ_hilbert_space.h"
-#include "tJ_operators.h"
 #include "params_case.h"
 #include "myutil.h"
 
@@ -31,8 +30,8 @@ int main(int argc, char *argv[]) {
 #ifndef USE_GPU
   qlten::hp_numeric::SetTensorManipulationThreads(params.Threads);
 #endif
-  tJOperators ops;
-  const SiteVec<TenElemT, QNT> sites = SiteVec<TenElemT, QNT>(N, pb_out);
+  qlmps::tJOperators<TenElemT, QNT> ops;
+  const SiteVec<TenElemT, QNT> sites = tj_site.GenUniformSites<TenElemT>(N);
 
   using FiniteMPST = qlmps::FiniteMPS<TenElemT, QNT>;
   FiniteMPST mps(sites);

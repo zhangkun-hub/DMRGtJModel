@@ -3,7 +3,6 @@
 #include <time.h>
 #include <stdlib.h>
 #include "tJ_hilbert_space.h"
-#include "tJ_operators.h"
 #include "params_case.h"
 #include "myutil.h"
 #include "squarelattice.h"
@@ -53,7 +52,7 @@ int main(int argc, char *argv[]) {
 
   clock_t startTime, endTime;
   startTime = clock();
-  const SiteVec<TenElemT, QNT> sites = SiteVec<TenElemT, QNT>(N, pb_out);
+  const SiteVec<TenElemT, QNT> sites = tj_site.GenUniformSites<TenElemT>(N);
   qlmps::MPO<Tensor> mpo(N);
   if (IsPathExist(kMpoPath)) {
     for (size_t i = 0; i < mpo.size(); i++) {
