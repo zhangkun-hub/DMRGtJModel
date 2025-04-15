@@ -8,7 +8,6 @@
 #include "qlten/qlten.h"
 #include <ctime>
 #include "tJ_hilbert_space.h"
-#include "tJ_operators.h"
 #include "params_case.h"
 #include "myutil.h"
 #include "qlten/utility/timer.h"
@@ -114,12 +113,13 @@ int main(int argc, char *argv[]) {
    * Effectively measure local pairing:
    * (A-B)/sqrt(2) gives the singlet pair
    * (A+B)/sqrt(2) gives the triplet pair (except the boundary, boundary should count for an additional sign)
+   * The \pm 1 components of the local triplet pairs are forbidden by spin U1 symmetry
    * which should degenerate with C and D if SU(2) symmetry is restored.
    */
   sc_phys_ops_a = {ops.id, ops.id, ops.bupa, ops.bdna};
   sc_phys_ops_b = {ops.id, ops.id, ops.bdna, ops.bupa};
-  sc_phys_ops_c = {ops.id, ops.id, ops.bupa, ops.bupa};//triplet +1
-  sc_phys_ops_d = {ops.id, ops.id, ops.bdna, ops.bdna};//triplet -1
+  sc_phys_ops_c = {ops.id, ops.id, ops.bupc, ops.bdnc};
+  sc_phys_ops_d = {ops.id, ops.id, ops.bdnc, ops.bupc};
   PerformMeasureSC(rank, mpi_size, 0, params, sc_phys_ops_a, sc_phys_ops_b, sc_phys_ops_c, sc_phys_ops_d, ops.f);
 #endif
   endTime = clock();
@@ -138,7 +138,7 @@ void PerformMeasureSC(int rank,
                       const Tensor &f) {
   const size_t Lx = params.Lx, Ly = params.Ly;
   const size_t N = Lx * Ly;
-  const SiteVec<TenElemT, QNT> sites = SiteVec<TenElemT, QNT>(N, pb_out);
+  const SiteVec<TenElemT, QNT> sites = tj_site.GenUniformSites<TenElemT>(N);
   FiniteMPST mps(sites);
   std::array<size_t, 2> ref_site{start, start + 1}; // y bond
   std::vector<std::array<size_t, 2>> target_x_bond;

@@ -12,13 +12,12 @@
 #include "qlten/qlten.h"
 #include <ctime>
 #include "tJ_hilbert_space.h"
-#include "tJ_operators.h"
 #include "params_case.h"
 #include "myutil.h"
 #include "my_measure.h"
 #include "qlten/utility/timer.h"
 
-using FiniteMPST = qlmps::FiniteMPS<TenElemT, U1U1QN>;
+using FiniteMPST = qlmps::FiniteMPS<TenElemT, QNT>;
 using qlmps::SiteVec;
 using qlmps::MeasureOneSiteOp;
 using qlten::Timer;
@@ -87,7 +86,7 @@ int main(int argc, char *argv[]) {
 
   tJOperators ops;
 
-  const SiteVec<TenElemT, U1U1QN> sites = SiteVec<TenElemT, U1U1QN>(N, pb_out);
+  const SiteVec<TenElemT, QNT> sites = tj_site.GenUniformSites<TenElemT>(N);
   FiniteMPST mps(sites);
 #ifndef USE_GPU
   qlten::hp_numeric::SetTensorManipulationThreads(params.Threads);

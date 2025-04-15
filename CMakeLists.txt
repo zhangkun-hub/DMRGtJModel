@@ -178,7 +178,7 @@ else ()
     )
 endif ()
 
-add_library(common_objects OBJECT src/myutil.cpp src/tJ_operators.cpp)
+add_library(common_objects OBJECT src/myutil.cpp)
 
 add_executable(dmrg src/dmrg.cpp $<TARGET_OBJECTS:common_objects>)
 add_executable(mpogen src/mpogen.cpp $<TARGET_OBJECTS:common_objects>)

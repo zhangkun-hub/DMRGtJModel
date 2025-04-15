@@ -6,7 +6,6 @@
 #include "tJ_hilbert_space.h"
 #include "squarelattice.h"
 #include "params_case.h"
-#include "tJ_operators.h"
 
 inline void ConstructtJMPOGenerator(
     qlmps::MPOGenerator<TenElemT, QNT> &mpo_gen,
@@ -18,7 +17,7 @@ inline void ConstructtJMPOGenerator(
       J = model_params.J,
       J2 = model_params.J2,
       phi = model_params.phi;
-  tJOperators ops;
+  qlmps::tJOperators<TenElemT, QNT> ops;
   if (std::fabs(phi) < 1e-15) {
     for (const Link &link : lattice.nearest_neighbor_links) {
       size_t site1 = std::get<0>(link);

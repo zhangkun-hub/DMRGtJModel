@@ -11,7 +11,6 @@
 #include "qlten/qlten.h"
 #include <ctime>
 #include "tJ_hilbert_space.h"
-#include "tJ_operators.h"
 #include "params_case.h"
 #include "myutil.h"
 #include "my_measure.h"
@@ -51,13 +50,13 @@ int main(int argc, char *argv[]) {
   qlten::hp_numeric::SetTensorManipulationThreads(params.Threads);
 #endif
 
-  const SiteVec<TenElemT, QNT> sites = SiteVec<TenElemT, QNT>(N, pb_out);
+  const SiteVec<TenElemT, QNT> sites = tj_site.GenUniformSites<TenElemT>(N);
   using FiniteMPST = qlmps::FiniteMPS<TenElemT, QNT>;
   FiniteMPST mps(sites);
   qlmps::MPOGenerator<TenElemT, QNT> Sp(sites, qn0);
   qlmps::MPOGenerator<TenElemT, QNT> Sm(sites, qn0);
   qlmps::MPOGenerator<TenElemT, QNT> Sz(sites, qn0);
-  tJOperators ops;
+  qlmps::tJOperators<TenElemT, QNT> ops;
   for (size_t i = 0; i < N; i++) {
     Sz.AddTerm(1.0, ops.sz, i);
     Sp.AddTerm(1.0, ops.sp, i);
