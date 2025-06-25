@@ -19,6 +19,7 @@
     "Threads": 2,
     "noise": [0.1,0.01],
     "Perturbation": 0.0, 
+    "BondSingletPairPerturbation": 0.0,
     "wavelength": 4
   }
 }

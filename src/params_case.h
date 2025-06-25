@@ -23,7 +23,7 @@ struct CaseParams : public CaseParamsParserBasic {
     J = ParseDouble("J");
     J2 = ParseDouble("J2");
     phi = ParseDouble("phi");
-#if SYM_LEVEL==0
+#if SYM_LEVEL == 0
     mu = ParseDouble("mu");
 #endif
     Sweeps = ParseInt("Sweeps");
@@ -34,6 +34,9 @@ struct CaseParams : public CaseParamsParserBasic {
     MaxLanczIter = ParseInt("MaxLanczIter");
     Threads = ParseInt("Threads");
     Perturbation = ParseDouble("Perturbation");
+#if SYM_LEVEL == 0
+    BondSingletPairPerturbation = ParseDouble("BondSingletPairPerturbation");
+#endif
     wavelength = ParseDouble("wavelength");
     noise = ParseDoubleVec("noise");
   }
@@ -58,6 +61,7 @@ struct CaseParams : public CaseParamsParserBasic {
   size_t MaxLanczIter;
   size_t Threads;
   double Perturbation;
+  double BondSingletPairPerturbation;
   double wavelength;
   std::vector<double> noise;
 

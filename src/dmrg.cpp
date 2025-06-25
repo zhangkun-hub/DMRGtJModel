@@ -88,6 +88,8 @@ int main(int argc, char *argv[]) {
   for (size_t i = 0; i < N; i++) {
     mpo_gen.AddTerm(-params.mu, ops.nf, i);
   }
+  mpo_gen.AddTerm(params.BondSingletPairPerturbation, ops.bupa, 0, ops.bdna, 1);
+  mpo_gen.AddTerm(-params.BondSingletPairPerturbation, ops.bdna, 0, ops.bupa, 1);
 #endif
   auto mat_repr_mpo = mpo_gen.GenMatReprMPO();
   using FiniteMPST = qlmps::FiniteMPS<TenElemT, QNT>;
