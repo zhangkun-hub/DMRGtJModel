@@ -49,14 +49,18 @@ int main(int argc, char *argv[]) {
       size_t MaxLanczIterSetSpace;
       MaxLanczIterSet[0] = 3;
       MaxLanczIterSetSpace = (params.MaxLanczIter - 3) / (DMRG_time - 1);
-      std::cout << "Setting MaxLanczIter as : [" << MaxLanczIterSet[0] << ", ";
+      if (rank == kMPIMasterRank)
+        std::cout << "Setting MaxLanczIter as : [" << MaxLanczIterSet[0] << ", ";
       for (size_t i = 1; i < DMRG_time - 1; i++) {
         MaxLanczIterSet[i] = MaxLanczIterSet[i - 1] + MaxLanczIterSetSpace;
-        std::cout << MaxLanczIterSet[i] << ", ";
+        if (rank == kMPIMasterRank)
+          std::cout << MaxLanczIterSet[i] << ", ";
       }
-      std::cout << MaxLanczIterSet.back() << "]" << std::endl;
+      if (rank == kMPIMasterRank)
+        std::cout << MaxLanczIterSet.back() << "]" << std::endl;
     } else {
-      std::cout << "Setting MaxLanczIter as : [" << MaxLanczIterSet[0] << "]" << std::endl;
+      if (rank == kMPIMasterRank)
+        std::cout << "Setting MaxLanczIter as : [" << MaxLanczIterSet[0] << "]" << std::endl;
     }
   }
 
@@ -119,22 +123,24 @@ int main(int argc, char *argv[]) {
   qlten::hp_numeric::SetTensorManipulationThreads(params.Threads);
 #endif
 
-  if (IsPathExist(kMpsPath)) {
-    if (N == GetNumofMps()) {
-      cout << "The number of mps files is consistent with mps size." << endl;
-      cout << "Directly use mps from files." << endl;
+  if (rank == kMPIMasterRank) {
+    if (IsPathExist(kMpsPath)) {
+      if (N == GetNumofMps()) {
+        cout << "The number of mps files is consistent with mps size." << endl;
+        cout << "Directly use mps from files." << endl;
+      } else {
+        qlmps::DirectStateInitMps(mps, stat_labs);
+        cout << "Initial mps as direct product state." << endl;
+        mps.Dump(kMpsPath, true);
+      }
     } else {
       qlmps::DirectStateInitMps(mps, stat_labs);
       cout << "Initial mps as direct product state." << endl;
-      if (rank == 0)
-        mps.Dump(kMpsPath, true);
-    }
-  } else {
-    qlmps::DirectStateInitMps(mps, stat_labs);
-    cout << "Initial mps as direct product state." << endl;
-    if (rank == 0)
       mps.Dump(kMpsPath, true);
+    }
   }
+  MPI_Barrier(comm);
+
   double e0;
   if (!has_bond_dimension_parameter) {
     qlmps::FiniteVMPSSweepParams sweep_params(
