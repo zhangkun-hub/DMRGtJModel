@@ -1,7 +1,7 @@
 # Quick Run (MPI on CPU Architecture)
 
 This guide demonstrates how to perform a simple calculation with the Square Lattice t-J Model DMRG code after building the project.  
-We show how to perform a DMRG ground state calculation on a $2\times 4$ square lattice with 2 holes doped away from half-filling.  
+We show how to perform a DMRG ground state calculation on a $2\times 8$ square lattice with 2 holes doped away from half-filling.  
 **Before starting, ensure you have compiled the code with particle number U(1) symmetry conservation.**
 
 ## 0. Create a New Directory for the Calculation
@@ -16,8 +16,8 @@ Create a JSON file (e.g., `quick_params.json`) with the following content:
 {
   "CaseParams": {
     "Geometry": "OBC",
-    "Lx": 2,
-    "Ly": 4,
+    "Lx": 8,
+    "Ly": 2,
     "t": 1.0,
     "t2": 0,
     "J": 0.3,
@@ -40,7 +40,7 @@ Create a JSON file (e.g., `quick_params.json`) with the following content:
 }
 ```
 
-This example sets up a $2\times 4$ lattice for the t-J model with $t=1$, $J=0.3$, and no next-nearest-neighbor terms ($t_2=0$, $J_2=0$).
+This example sets up a $2\times 8$ lattice for the t-J model with $t=1$, $J=0.3$, and no next-nearest-neighbor terms ($t_2=0$, $J_2=0$).
 
 For a detailed explanation of each parameter, see [`docs/parameters.md`](parameters.md).
 
@@ -57,66 +57,59 @@ mpirun -n 8 path_to_build/dmrg quick_params.json --D=10,30,100,300
 You should see output similar to:
 
 ```
-  ****** tJV Model Parameter List ******
+ ****** tJV Model Parameter List ******
 NN hopping t  = 1
 NNN hopping t2 = 0
 NN super-exchange J  = 0.3
 NNN super-exchangeJ2 = 0
 Twist angle phi = 0
-Setting MaxLanczIter as : [3, 25, 47, 70]
-lattice construct
-Setting MaxLanczIter as : [3, 25, 47, 70]
-lattice construct
-Setting MaxLanczIter as : [3, 25, 47, 70]
-lattice construct
-Setting MaxLanczIter as : [3, 25, 47, 70]
-lattice construct
-Setting MaxLanczIter as : [3, 25, 47, 70]
-lattice construct
-Setting MaxLanczIter as : [3, 25, 47, 70]
-Setting MaxLanczIter as : [3, 25, 47, 70]
 lattice construct
 lattice construct
-Setting MaxLanczIter as : [3, 25, 47, 70]
 lattice construct
-[	9	18	26	34	26	18	9	1]
-[	9	18	26	34	26	18	9	1]
-[	9	18	26	34	26	18	9	1]
-[	9	18	26	34	26	18	9	1]
-[	9	18	26	34	26	18	9	1]
-[	9	18	26	34	26	18	9	1]
-[	9	18	26	34	26	18	9	1]
-[	9	18	26	34	26	18	9	1]
-Initial mps as direct product state.
-D_max = 10
-Initial mps as direct product state.
-Initial mps as direct product state.
-Initial mps as direct product state.
-Initial mps as direct product state.
+lattice construct
+lattice construct
+lattice construct
+lattice construct
+lattice construct
+[	9	18	26	34	42	50	58	66	74	82	74	66	58	50	42	34	26	18	9	1]
+[	9	18	26	34	42	50	58	66	74	82	74	66	58	50	42	34	26	18	9	1]
+[	9	18	26	34	42	50	58	66	74	82	74	66	58	50	42	34	26	18	9	1]
+[	9	18	26	34	42	50	58	66	74	82	74	66	58	50	42	34	26	18	9	1]
+[	9	18	26	34	42	50	58	66	74	82	74	66	58	50	42	34	26	18	9	1]
+[	9	18	26	34	42	50	58	66	74	82	74	66	58	50	42	34	26	18	9	1]
+[	9	18	26	34	42	50	58	66	74	82	74	66	58	50	42	34	26	18	9	1]
+[	9	18	26	34	42	50	58	66	74	82	74	66	58	50	42	34	26	18	9	1]
 Initial mps as direct product state.
 
 =====> MPI Sweep Parameters For DMRG <=====
-MPS/MPO size: 	 8
+MPS/MPO size: 	 20
 Sweep times: 	 4
-Bond dimension: 	 10/10
+Bond dimension: 	 10/300
 Truncation error: 	 1e-08
-Lanczos max iterations 	3
+Lanczos max iterations 	70
 MPS path: 	mps
 Temp path: 	.temp
 =====> Technical Parameters <=====
 The number of processors(including master): 	8
 The number of threads per processor: 	4
 =====> Checking and Updating Boundary Tensors =====>
-Initial mps as direct product state.
-Initial mps as direct product state.
-left boundary: 	2
-right boundary: 	5
+left boundary: 	5
+right boundary: 	14
 No temp directory .temp
 =====> Generating the block operators =====>
 right block operator number : 9
 right block operator number : 18
 right block operator number : 26
 right block operator number : 34
+right block operator number : 42
+right block operator number : 50
+right block operator number : 58
+right block operator number : 66
+right block operator number : 74
+right block operator number : 82
+right block operator number : 74
+right block operator number : 66
+right block operator number : 58
 
 sweep 1
 ```
@@ -124,36 +117,40 @@ sweep 1
 and output end with
 ```
 sweep 4
-Site (   2,   3) E0 = -4.9258005218948036 TruncErr = 0.00e+00 D =    26 Iter =   2 LanczT =     0.00 TotT =     0.00 S =  2.2616350
-Site (   3,   4) E0 = -4.9258005218984087 TruncErr = 0.00e+00 D =    60 Iter =   2 LanczT =     0.00 TotT =     0.01 S =  2.4634575
-Site (   4,   5) E0 = -4.9258005219017429 TruncErr = 0.00e+00 D =    26 Iter =   2 LanczT =     0.00 TotT =     0.00 S =  2.2616351
-Site (   3,   4) E0 = -4.9258005219049945 TruncErr = 0.00e+00 D =    60 Iter =   2 LanczT =     0.00 TotT =     0.01 S =  2.4634576
-[timing] sweep  0.02455
+Site (   5,   6) E0 = -7.5991299880596825 TruncErr = 9.85e-09 D =   222 Iter =  38 LanczT =     0.07 TotT =     0.07 S =  2.1186915
+Site (   6,   7) E0 = -7.5991822221020540 TruncErr = 3.20e-08 D =   300 Iter =  25 LanczT =     0.06 TotT =     0.07 S =  2.3854260
+Site (   7,   8) E0 = -7.5991864037555894 TruncErr = 4.75e-08 D =   300 Iter =  14 LanczT =     0.04 TotT =     0.05 S =  2.2765103
+Site (   8,   9) E0 = -7.5991873036324513 TruncErr = 3.55e-08 D =   300 Iter =  11 LanczT =     0.03 TotT =     0.03 S =  2.3855835
+Site (   9,  10) E0 = -7.5991876238416314 TruncErr = 9.93e-09 D =   238 Iter =   7 LanczT =     0.02 TotT =     0.02 S =  2.1201185
+Site (   8,   9) E0 = -7.5991877258528016 TruncErr = 3.77e-08 D =   300 Iter =   6 LanczT =     0.02 TotT =     0.02 S =  2.3855850
+Site (   7,   8) E0 = -7.5991877787750335 TruncErr = 5.04e-08 D =   300 Iter =   6 LanczT =     0.02 TotT =     0.03 S =  2.2765200
+Site (   6,   7) E0 = -7.5991877298614918 TruncErr = 3.67e-08 D =   300 Iter =   6 LanczT =     0.02 TotT =     0.02 S =  2.3855737
+[timing] sweep  0.31892
 
 Moved the center of MPS to 0.
-Node1 will stop.
-Node2 will stop.
-Node3 will stop.
 Node4 will stop.
 Node5 will stop.
 Node6 will stop.
 Node7 will stop.
-E0/site: -0.61573
-CPU Time : 3.33102s
+Node1 will stop.
+Node2 will stop.
+Node3 will stop.
+E0/site: -0.47495
+CPU Time : 3.87674s
 E0/site: 0
-CPU Time : 4.06455s
 E0/site: 0
-CPU Time : 4.06112s
+CPU Time : 4.36226s
 E0/site: 0
-CPU Time : 4.01902s
+CPU Time : 4.36268s
 E0/site: 0
-CPU Time : 4.0338s
+CPU Time : 4.37261s
 E0/site: 0
-CPU Time : 4.05581s
+CPU Time : 4.36255CPU Time : 4.37238s
 E0/site: 0
-CPU Time : 4.05386s
+CPU Time : 4.37252s
 E0/site: 0
-CPU Time : 4.05449s
+CPU Time : 4.37162s
+s
 ```
 
 The ground state wave function will be saved in the `mps` directory, with ground state energy reported at the end.
@@ -185,14 +182,22 @@ cat sz.json
 Output:
 ```
 [
-  [[0], 1.29235573822e-05],
-  [[1], -6.3974631298e-06],
-  [[2], -6.39746312949e-06],
-  [[3], 1.29235573831e-05],
-  [[4], -1.29254624046e-05],
-  [[5], 6.39936815239e-06],
-  [[6], 6.39936815247e-06],
-  [[7], -1.29254624063e-05]
+  [[0], 2.59576799587e-05],
+  [[1], -2.19478820597e-05],
+  [[2], -2.26287511573e-05],
+  [[3], 2.14116129123e-05],
+  [[4], 2.28057212783e-05],
+  [[5], -1.87932101684e-05],
+  [[6], -1.30490656793e-05],
+  [[7], 1.1729093732e-05],
+  [[8], -9.45153504613e-06],
+  [[9], 1.06538555761e-05],
+  [[10], 1.96032212238e-05],
+  [[11], -2.23617681307e-05],
+  [[12], -2.96192012065e-05],
+  [[13], 2.82371681596e-05],
+  [[14], 3.35207939214e-05],
+  [[15], -3.60677333142e-05]
 ]
 ```
 Here, each entry gives the value of $\langle \hat{S}^z_i \rangle$ for site $i$. 
