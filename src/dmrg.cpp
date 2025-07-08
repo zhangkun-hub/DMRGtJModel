@@ -94,6 +94,9 @@ int main(int argc, char *argv[]) {
   }
   mpo_gen.AddTerm(params.BondSingletPairPerturbation, ops.bupa, 0, ops.bdna, 1);
   mpo_gen.AddTerm(-params.BondSingletPairPerturbation, ops.bdna, 0, ops.bupa, 1);
+  if (rank == kMPIMasterRank && std::abs(params.BondSingletPairPerturbation) > 0) {
+    std::cout << "Add singlet pair perturbation on bond (0,1)" << std::endl;
+  }
 #endif
   auto mat_repr_mpo = mpo_gen.GenMatReprMPO();
   using FiniteMPST = qlmps::FiniteMPS<TenElemT, QNT>;

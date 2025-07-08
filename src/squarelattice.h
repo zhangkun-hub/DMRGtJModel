@@ -194,6 +194,7 @@ SquareOBC::SquareOBC(const size_t Ly, const size_t Lx) :
       nearest_neighbor_links.push_back(Link{i, Tx});
     }
   }
+  direct_nn_links = nearest_neighbor_links;
 
   next_nearest_neighbor_links.reserve(2 * N);
   for (size_t i = 0; i < N; ++i) {
@@ -209,6 +210,7 @@ SquareOBC::SquareOBC(const size_t Ly, const size_t Lx) :
       next_nearest_neighbor_links.push_back(Link{i, Txy2});
     }
   }
+  direct_nnn_links = next_nearest_neighbor_links;
 }
 
 /**

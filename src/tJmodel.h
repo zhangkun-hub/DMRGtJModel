@@ -48,7 +48,7 @@ inline void ConstructtJMPOGenerator(
     }
   } else {
 #ifdef USE_REAL
-    std::cout << "phi : " << phi << " is non-zero. Please use complex code!" << std::endl;
+    std::cout << "phi : " << phi << " is non-zero. Please use complex code! (-DRealCode=OFF when compile)" << std::endl;
     exit(1);
 #else
     using Complex = std::complex<double>;

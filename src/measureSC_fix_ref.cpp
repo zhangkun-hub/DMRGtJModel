@@ -118,8 +118,8 @@ int main(int argc, char *argv[]) {
    */
   sc_phys_ops_a = {ops.id, ops.id, ops.bupa, ops.bdna};
   sc_phys_ops_b = {ops.id, ops.id, ops.bdna, ops.bupa};
-  sc_phys_ops_c = {ops.id, ops.id, ops.bupc, ops.bdnc};
-  sc_phys_ops_d = {ops.id, ops.id, ops.bdnc, ops.bupc};
+  sc_phys_ops_c = {ops.id, ops.id, ops.bupc, ops.bupc};
+  sc_phys_ops_d = {ops.id, ops.id, ops.bdnc, ops.bdnc};
   PerformMeasureSC(rank, mpi_size, 0, params, sc_phys_ops_a, sc_phys_ops_b, sc_phys_ops_c, sc_phys_ops_d, ops.f);
 #endif
   endTime = clock();
