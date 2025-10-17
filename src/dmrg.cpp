@@ -14,6 +14,7 @@
 #include "params_case.h"
 #include "myutil.h"
 #include "squarelattice.h"
+#include "honeycomb_lattice.h"
 #include "tJmodel.h"
 
 using namespace qlmps;
@@ -28,7 +29,7 @@ int main(int argc, char *argv[]) {
   MPI_Comm_size(comm, &mpi_size);
   CaseParams params(argv[1]);
   size_t Lx = params.Lx, Ly = params.Ly;
-  size_t N = Lx * Ly;
+  size_t N = ComputeTotalSites(params);
   tJModelParamters model_params(params);
   if (rank == 0) {
     model_params.Print();
@@ -66,26 +67,48 @@ int main(int argc, char *argv[]) {
 
   qlmps::MPOGenerator<TenElemT, QNT> mpo_gen(sites, qn0);
 
-  if (Ly == 2) {
+  const bool is_honeycomb = IsHoneycombGeometry(params);
+
+  if (!is_honeycomb && Ly == 2) {
     SquareLadder lattice(Lx);
     cout << "lattice construct" << std::endl;
     ConstructtJMPOGenerator(mpo_gen, lattice, model_params);
-  } else if (params.Geometry == "Cylinder") {
+  } else if (params.Geometry == "SquareCylinder") {
     SquareCylinder lattice(Ly, Lx);
     cout << "lattice construct" << std::endl;
     ConstructtJMPOGenerator(mpo_gen, lattice, model_params);
-  } else if (params.Geometry == "OBC") {
+  } else if (params.Geometry == "SquareOBC") {
     SquareOBC lattice(Ly, Lx);
     cout << "lattice construct" << std::endl;
     ConstructtJMPOGenerator(mpo_gen, lattice, model_params);
-  } else if (params.Geometry == "Rotated") {
+  } else if (params.Geometry == "SquareRotated") {
     SquareRotatedCylinder lattice(Ly, Lx);
     cout << "lattice construct" << std::endl;
     ConstructtJMPOGenerator(mpo_gen, lattice, model_params);
-  } else if (params.Geometry == "Torus") {
+  } else if (params.Geometry == "SquareTorus") {
     SquareTorus lattice(Ly, Lx);
     cout << "lattice construct" << std::endl;
     ConstructtJMPOGenerator(mpo_gen, lattice, model_params);
+  } else if (params.Geometry == "HoneycombXC") {
+    if (std::abs(params.phi) > 1e-15 && rank == kMPIMasterRank) {
+      std::cerr << "[warning] Honeycomb geometry ignores phi; set phi=0." << std::endl;
+    }
+    HoneycombXCCylinder lattice(Ly, Lx);
+    cout << "honeycomb lattice construct" << std::endl;
+    ConstructtJMPOGenerator(mpo_gen, lattice, model_params);
+  } else if (params.Geometry == "HoneycombYC") {
+    if (std::abs(params.phi) > 1e-15 && rank == kMPIMasterRank) {
+      std::cerr << "[warning] Honeycomb geometry ignores phi; set phi=0." << std::endl;
+    }
+    HoneycombYCCylinder lattice(Ly, Lx);
+    cout << "honeycomb lattice construct" << std::endl;
+    ConstructtJMPOGenerator(mpo_gen, lattice, model_params);
+  } else {
+    if (rank == kMPIMasterRank) {
+      std::cerr << "[error] Unsupported geometry '" << params.Geometry << "'" << std::endl;
+    }
+    MPI_Finalize();
+    return EXIT_FAILURE;
   }
 #if SYM_LEVEL == 0
   qlmps::tJOperators<TenElemT, QNT> ops;

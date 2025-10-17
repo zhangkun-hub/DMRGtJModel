@@ -63,6 +63,15 @@ bool ParserBondDimension(int argc, char *argv[],
   return has_D_parameter;
 }
 
+bool IsHoneycombGeometry(const CaseParams &params) {
+  return params.Geometry == "HoneycombXC" || params.Geometry == "HoneycombYC";
+}
+
+size_t ComputeTotalSites(const CaseParams &params) {
+  const size_t sites_per_cell = IsHoneycombGeometry(params) ? 2 : 1;
+  return params.Lx * params.Ly * sites_per_cell;
+}
+
 /// for translation symmetry
 std::vector<size_t> GenerateDirectStateLabel(const size_t ly,
                                              const size_t lx,

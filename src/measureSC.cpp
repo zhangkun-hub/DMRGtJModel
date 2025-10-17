@@ -7,6 +7,10 @@
       --start=
       --end=
     Which are by default set as start=Lx/4, end = 3*Lx/4+2
+
+    NOTE: This legacy binary is kept for square-lattice workflows only and is
+    not planned to support the upcoming honeycomb geometry. For honeycomb t-J
+    simulations, use measureSC_fix_ref.cpp (and its successor binaries).
 */
 #include "qlmps/qlmps.h"
 #include "qlten/qlten.h"
@@ -73,7 +77,7 @@ int main(int argc, char *argv[]) {
   CaseParams params(argv[1]);
 
   size_t Lx = params.Lx, Ly = params.Ly;
-  size_t N = Lx * Ly;
+  size_t N = ComputeTotalSites(params);
   if (GetNumofMps() != N) {
     std::cout << "The number of mps files are inconsistent with mps size!" << std::endl;
     exit(1);

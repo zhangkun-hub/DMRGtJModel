@@ -9,14 +9,14 @@ Below is a description of each parameter and its role in the simulation.
 
 | Parameter                     | Type    | Description                                                                                                                         |
 |-------------------------------|---------|-------------------------------------------------------------------------------------------------------------------------------------|
-| `Geometry`                    | string  | Lattice geometry. Options: `"OBC"` (open stripe), `"Cylinder"`, `"Rotated"`, `"Torus"`.                                             |
+| `Geometry`                    | string  | Lattice geometry. Options: `"SquareCylinder"`, `"SquareOBC"`, `"SquareRotated"`, `"SquareTorus"`, `"HoneycombXC"`, `"HoneycombYC"`. Legacy values (`"Cylinder"`, `"OBC"`, `"Rotated"`, `"Torus"`) remain accepted but are normalized to the corresponding `Square*` entries with a warning; prefer the new names in fresh configurations. |
 | `Lx`                          | integer | Number of sites along the x-direction.                                                                                              |
 | `Ly`                          | integer | Number of sites along the y-direction.                                                                                              |
 | `t`                           | float   | Nearest-neighbor hopping amplitude.                                                                                                 |
 | `t2`                          | float   | Next-nearest-neighbor hopping amplitude.                                                                                            |
 | `J`                           | float   | Nearest-neighbor spin exchange coupling.                                                                                            |
 | `J2`                          | float   | Next-nearest-neighbor spin exchange coupling.                                                                                       |
-| `phi`                         | float   | Magnetic flux inserted into cylinder (if applicable).                                                                               |
+| `phi`                         | float   | Magnetic flux inserted into cylinder (if applicable). Ignored (with warning) for honeycomb geometries.                              |
 | `mu`                          | float   | Chemical potential, in Hamiltonian it contribute $-\mu N$ (if no particle number conservation code).                                |
 | `NumHole`                     | integer | Number of holes, counting in the way away from half-filling                                                                         |
 | `Sweeps`                      | integer | Number of DMRG sweeps.                                                                                                              |
@@ -38,7 +38,7 @@ Below is a description of each parameter and its role in the simulation.
 ```json
 {
   "CaseParams": {
-    "Geometry": "OBC",
+    "Geometry": "SquareOBC",
     "Lx": 3,
     "Ly": 4,
     "t": 1.0,

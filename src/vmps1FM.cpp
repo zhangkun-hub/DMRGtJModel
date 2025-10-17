@@ -13,6 +13,7 @@
 #include "params_case.h"
 #include "myutil.h"
 #include "squarelattice.h"
+#include "honeycomb_lattice.h"
 #include "tJmodel.h"
 
 using namespace qlmps;
@@ -21,8 +22,8 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
   CaseParams params(argv[1]);
-  size_t Lx = params.Lx, Ly = params.Ly;
-  size_t N = Lx * Ly;
+  const size_t Ly = params.Ly;
+  const size_t N = ComputeTotalSites(params);
   tJModelParamters model_params(params);
   model_params.Print();
   clock_t startTime, endTime;

@@ -71,15 +71,13 @@ int main(int argc, char *argv[]) {
 
   ParserContinueArgs(argc, argv, start_site, start_direction);
 
-  const size_t Lx = params.Lx;
-  const size_t Ly = params.Ly;
-  const size_t N = Lx * Ly;
+  const size_t N = ComputeTotalSites(params);
   cout << "The total number of sites: " << N << endl;
 
   clock_t startTime, endTime;
   startTime = clock();
 
-  const SiteVec<TenElemT, U1U1QN> sites(N, pb_out);
+  const SiteVec<TenElemT, U1U1QN> sites = tj_site.GenUniformSites<TenElemT>(N);
   qlmps::MPOGenerator<TenElemT, U1U1QN> mpo_gen(sites, qn0);
   const std::string kMpoPath = "mpo";
   const std::string kMpoTenBaseName = "mpo_ten";

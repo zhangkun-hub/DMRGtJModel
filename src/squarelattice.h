@@ -1,40 +1,25 @@
 #ifndef SQUARE_LATTICE_H
 #define SQUARE_LATTICE_H
 
-#include <iostream>
-#include <cstdlib>
-#include <vector>
+#include <algorithm>
 #include <tuple>
 #include <cassert>
+#include <cstdlib>
+#include <iostream>
+#include <tuple>
 
-using std::vector;
-using std::tuple;
-using std::min;
-using std::max;
+#include "lattice_base.h"
 
-using Link = tuple<size_t, size_t>;
+class SquareLattice : public LatticeBase {
+ public:
+  SquareLattice() = default;
+  SquareLattice(size_t Ly, size_t Lx) : LatticeBase(Ly, Lx, 1) {}
 
-//base class
-class SquareLattice {
- public :
-  SquareLattice(void) = default;
-  SquareLattice(const size_t Ly, const size_t Lx) : Ly(Ly), Lx(Lx), N(Lx * Ly) {}
-  inline void Print(void) {
-    std::cout << "System size (Lx, Ly) = ( "
-              << Lx << ", "
-              << Ly << ")" << "\n";
+  std::pair<double, double> SiteCoordinate(size_t site) const override {
+    const size_t y = site % Ly;
+    const size_t x = site / Ly;
+    return {static_cast<double>(x), static_cast<double>(y)};
   }
-
-  size_t Ly;
-  size_t Lx;
-  size_t N; //total site number
-  vector<Link> nearest_neighbor_links;      //ordered by smaller number site to larger number site
-  vector<Link> direct_nn_links;
-  vector<Link> wind_nn_links;
-  vector<Link> next_nearest_neighbor_links; //ordered by smaller number site to larger number site
-  vector<Link> direct_nnn_links;
-  vector<Link> wind_nnn_links_1;
-  vector<Link> wind_nnn_links_2;
 };
 
 /** Two-leg ladder
@@ -59,22 +44,22 @@ SquareLadder::SquareLadder(const size_t Lx) : SquareLattice(2, Lx) {
   // nearest neighbor links
   nearest_neighbor_links.reserve(2 * (Lx - 1) + Lx);
   for (size_t i = 0; i < N; i = i + 2) {
-    nearest_neighbor_links.push_back(Link(i, i + 1));
+    nearest_neighbor_links.emplace_back(i, i + 1);
   }
   for (size_t i = 0; i < N - 2; i = i + 2) {
-    nearest_neighbor_links.push_back(Link(i, i + 2));
+      nearest_neighbor_links.emplace_back(i, i + 2);
   }
   for (size_t i = 1; i < N - 2; i = i + 2) {
-    nearest_neighbor_links.push_back(Link(i, i + 2));
+      nearest_neighbor_links.emplace_back(i, i + 2);
   }
 
   // next nearest neighbor links
   next_nearest_neighbor_links.reserve(2 * (Lx - 1));
   for (size_t i = 0; i < N - 2; i = i + 2) {
-    next_nearest_neighbor_links.push_back(Link(i, i + 3));
+      next_nearest_neighbor_links.emplace_back(i, i + 3);
   }
   for (size_t i = 1; i < N - 2; i = i + 2) {
-    next_nearest_neighbor_links.push_back(Link(i, i + 1));
+      next_nearest_neighbor_links.emplace_back(i, i + 1);
   }
 }
 
@@ -91,11 +76,11 @@ Chain::Chain(const size_t Lx) : SquareLattice(1, Lx) {
     const size_t x = N; //x coordinate of site i
     const size_t Tx = ((x + 1) % Lx); //x-directional translation site of site i
 
-    nearest_neighbor_links.push_back(Link{min(i, Tx), max(i, Tx)});
+    nearest_neighbor_links.emplace_back(std::min(i, Tx), std::max(i, Tx));
     if (x < Lx - 1) {
-      direct_nn_links.push_back(Link{i, Tx});
+      direct_nn_links.emplace_back(i, Tx);
     } else {
-      wind_nn_links.push_back(Link{Tx, i});
+      wind_nn_links.emplace_back(Tx, i);
     }
   }
 }
@@ -135,15 +120,15 @@ SquareCylinder::SquareCylinder(const size_t Ly, const size_t Lx) :
     const size_t Tx = y + Ly * ((x + 1) % Lx); //x-directional translation site of site i
     const size_t Ty = (y + 1) % Ly + Ly * x;   //y-directional translation site of site i
 
-    nearest_neighbor_links.push_back(Link{min(i, Ty), max(i, Ty)});
+    nearest_neighbor_links.emplace_back(std::min(i, Ty), std::max(i, Ty));
     if (y < Ly - 1) {
-      direct_nn_links.push_back(Link{i, Ty});
+      direct_nn_links.emplace_back(i, Ty);
     } else {
-      wind_nn_links.push_back(Link{Ty, i});
+      wind_nn_links.emplace_back(Ty, i);
     }
     if (x < Lx - 1) {
-      nearest_neighbor_links.push_back(Link{i, Tx});
-      direct_nn_links.push_back(Link{i, Tx});
+      nearest_neighbor_links.emplace_back(i, Tx);
+      direct_nn_links.emplace_back(i, Tx);
     }
   }
 
@@ -154,17 +139,17 @@ SquareCylinder::SquareCylinder(const size_t Ly, const size_t Lx) :
     const size_t Txy = (y + 1) % Ly + Ly * ((x + 1) % Lx); //right-up-directional translation site of site i
     const size_t Txy2 = (y - 1 + Ly) % Ly + Ly * ((x + 1) % Lx);//right-down-directional translation site of site i
     if (x < Lx - 1) {
-      next_nearest_neighbor_links.push_back(Link{i, Txy});
-      next_nearest_neighbor_links.push_back(Link{i, Txy2});
+      next_nearest_neighbor_links.emplace_back(std::min(i, Txy), std::max(i, Txy));
+      next_nearest_neighbor_links.emplace_back(std::min(i, Txy2), std::max(i, Txy2));
       if (y < Ly - 1 && y > 0) {
-        direct_nnn_links.push_back(Link{i, Txy});
-        direct_nnn_links.push_back(Link{i, Txy2});
+        direct_nnn_links.emplace_back(i, Txy);
+        direct_nnn_links.emplace_back(i, Txy2);
       } else if (y == 0) {
-        direct_nnn_links.push_back(Link{i, Txy});
-        wind_nnn_links_2.push_back(Link{i, Txy2});
+        direct_nnn_links.emplace_back(i, Txy);
+        wind_nnn_links_2.emplace_back(i, Txy2);
       } else { //y == Ly -1
-        wind_nnn_links_1.push_back(Link{i, Txy});
-        direct_nnn_links.push_back(Link{i, Txy2});
+        wind_nnn_links_1.emplace_back(i, Txy);
+        direct_nnn_links.emplace_back(i, Txy2);
       }
     }
   }
@@ -188,10 +173,10 @@ SquareOBC::SquareOBC(const size_t Ly, const size_t Lx) :
     const size_t Ty = (y + 1) % Ly + Ly * x;   //y-directional translation site of site i
 
     if (y < Ly - 1) {
-      nearest_neighbor_links.push_back(Link{i, Ty});
+      nearest_neighbor_links.emplace_back(i, Ty);
     }
     if (x < Lx - 1) {
-      nearest_neighbor_links.push_back(Link{i, Tx});
+      nearest_neighbor_links.emplace_back(i, Tx);
     }
   }
   direct_nn_links = nearest_neighbor_links;
@@ -203,11 +188,11 @@ SquareOBC::SquareOBC(const size_t Ly, const size_t Lx) :
     const size_t Txy = (y + 1) % Ly + Ly * ((x + 1) % Lx); //right-up-directional translation site of site i
     const size_t Txy2 = (y - 1 + Ly) % Ly + Ly * ((x + 1) % Lx);//right-down-directional translation site of site i
     if (x < Lx - 1 && y < Ly - 1) {
-      next_nearest_neighbor_links.push_back(Link{i, Txy});
+      next_nearest_neighbor_links.emplace_back(i, Txy);
     }
 
     if (x < Lx - 1 && y > 0) {
-      next_nearest_neighbor_links.push_back(Link{i, Txy2});
+      next_nearest_neighbor_links.emplace_back(i, Txy2);
     }
   }
   direct_nnn_links = next_nearest_neighbor_links;
@@ -248,11 +233,11 @@ SquareRotatedCylinder::SquareRotatedCylinder(const size_t Ly, const size_t Lx) :
     const size_t Txy = (y + 1) % Ly + Ly * ((x + 1) % Lx); //right-up-directional translation site of site i
     const size_t Txy2 = (y - 1 + Ly) % Ly + Ly * ((x + 1) % Lx);//right-down-directional translation site of site i
 
-    nearest_neighbor_links.push_back(Link{min(i, Ty), max(i, Ty)});
+    nearest_neighbor_links.emplace_back(std::min(i, Ty), std::max(i, Ty));
 
     if ((x < Lx - 1) && (y % 2 == 0)) {
-      nearest_neighbor_links.push_back(Link{i, Txy});
-      nearest_neighbor_links.push_back(Link{i, Txy2});
+      nearest_neighbor_links.emplace_back(i, Txy);
+      nearest_neighbor_links.emplace_back(i, Txy2);
     }
   }
 
@@ -263,9 +248,9 @@ SquareRotatedCylinder::SquareRotatedCylinder(const size_t Ly, const size_t Lx) :
     const size_t Tx = y + Ly * ((x + 1) % Lx); //x-directional translation site of site i
     const size_t Ty2 = (y + 2) % Ly + Ly * x;   //y-directional translation site of site i
     if (x < Lx - 1) {
-      next_nearest_neighbor_links.push_back(Link{i, Tx});
+      next_nearest_neighbor_links.emplace_back(i, Tx);
     }
-    next_nearest_neighbor_links.push_back(Link{min(i, Ty2), max(i, Ty2)});//for Ly=4 coincide...
+    next_nearest_neighbor_links.emplace_back(std::min(i, Ty2), std::max(i, Ty2)); //for Ly=4 coincide...
   }
 
 }
@@ -305,8 +290,8 @@ SquareTorus::SquareTorus(const size_t Ly, const size_t Lx) :
     const size_t Tx = y + Ly * ((x + 1) % Lx); //x-directional translation site of site i
     const size_t Ty = (y + 1) % Ly + Ly * x;   //y-directional translation site of site i
 
-    nearest_neighbor_links.push_back(Link{min(i, Ty), max(i, Ty)});
-    nearest_neighbor_links.push_back(Link{min(i, Tx), max(i, Tx)});
+    nearest_neighbor_links.push_back(Link{std::min(i, Ty), std::max(i, Ty)});
+    nearest_neighbor_links.push_back(Link{std::min(i, Tx), std::max(i, Tx)});
   }
 
 
@@ -318,8 +303,8 @@ SquareTorus::SquareTorus(const size_t Ly, const size_t Lx) :
     const size_t Txy = (y + 1) % Ly + Ly * ((x + 1) % Lx); //right-up-directional translation site of site i
     const size_t Txy2 = (y - 1 + Ly) % Ly + Ly * ((x + 1) % Lx);//right-down-directional translation site of site i
 
-    next_nearest_neighbor_links.push_back(Link{min(i, Txy), max(i, Txy)});
-    next_nearest_neighbor_links.push_back(Link{min(i, Txy2), max(i, Txy2)});
+    next_nearest_neighbor_links.push_back(Link{std::min(i, Txy), std::max(i, Txy)});
+    next_nearest_neighbor_links.push_back(Link{std::min(i, Txy2), std::max(i, Txy2)});
   }
 
 }

@@ -10,11 +10,52 @@
 #define TJMODEL_SRC_PARAMS_CASE_H
 
 #include "qlmps/case_params_parser.h"
+#include <iostream>
+
 using qlmps::CaseParamsParserBasic;
+
+namespace {
+
+inline std::string NormalizeGeometry(const std::string &raw_geometry) {
+  auto warn = [](const std::string &message) {
+    std::cerr << "[geometry-warning] " << message << std::endl;
+  };
+
+  if (raw_geometry == "SquareCylinder" || raw_geometry == "SquareOBC" ||
+      raw_geometry == "SquareRotated" || raw_geometry == "SquareTorus" ||
+      raw_geometry == "HoneycombXC" || raw_geometry == "HoneycombYC") {
+    return raw_geometry;
+  }
+
+  if (raw_geometry == "Cylinder") {
+    warn("Legacy geometry 'Cylinder' mapped to 'SquareCylinder'");
+    return "SquareCylinder";
+  }
+
+  if (raw_geometry == "OBC") {
+    warn("Legacy geometry 'OBC' mapped to 'SquareOBC'");
+    return "SquareOBC";
+  }
+
+  if (raw_geometry == "Rotated") {
+    warn("Legacy geometry 'Rotated' mapped to 'SquareRotated'");
+    return "SquareRotated";
+  }
+
+  if (raw_geometry == "Torus") {
+    warn("Legacy geometry 'Torus' mapped to 'SquareTorus'");
+    return "SquareTorus";
+  }
+
+  return raw_geometry;
+}
+
+} // namespace
 
 struct CaseParams : public CaseParamsParserBasic {
   CaseParams(const char *pf) : CaseParamsParserBasic(pf) {
-    Geometry = ParseStr("Geometry");
+    std::string raw_geometry = ParseStr("Geometry");
+    Geometry = NormalizeGeometry(raw_geometry);
     Ly = ParseInt("Ly");
     Lx = ParseInt("Lx");
     Numhole = ParseInt("NumHole");
@@ -41,7 +82,7 @@ struct CaseParams : public CaseParamsParserBasic {
     noise = ParseDoubleVec("noise");
   }
 
-  std::string Geometry; // Cylinder, Torus, OBC, Rotated, Ladder (useless actually)
+  std::string Geometry; // SquareCylinder, SquareOBC, SquareRotated, SquareTorus, HoneycombXC, HoneycombYC
   size_t Ly;
   size_t Lx;
   size_t Numhole;
@@ -61,7 +102,9 @@ struct CaseParams : public CaseParamsParserBasic {
   size_t MaxLanczIter;
   size_t Threads;
   double Perturbation;
+#if SYM_LEVEL == 0
   double BondSingletPairPerturbation;
+#endif
   double wavelength;
   std::vector<double> noise;
 

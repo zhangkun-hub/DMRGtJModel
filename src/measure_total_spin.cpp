@@ -39,9 +39,7 @@ int main(int argc, char *argv[]) {
   MPI_Comm_size(comm, &mpi_size);
 
   CaseParams params(argv[1]);
-  size_t Lx = params.Lx;
-  size_t Ly = params.Ly;
-  size_t N = Lx * Ly;
+  size_t N = ComputeTotalSites(params);
 
   clock_t startTime, endTime;
   startTime = clock();

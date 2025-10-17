@@ -1,17 +1,24 @@
 #ifndef TJ_MODEL_H
 #define TJ_MODEL_H
 
+#include <type_traits>
+
 #include "qlmps/one_dim_tn/mpo/mpo.h"
 #include "qlmps/one_dim_tn/mpo/mpogen/mpogen.h"
 #include "tJ_hilbert_space.h"
+#include "lattice_base.h"
 #include "squarelattice.h"
 #include "params_case.h"
 
+template <typename LatticeT>
 inline void ConstructtJMPOGenerator(
     qlmps::MPOGenerator<TenElemT, QNT> &mpo_gen,
-    const SquareLattice &lattice,
+    const LatticeT &lattice,
     const tJModelParamters &model_params
 ) {
+  static_assert(std::is_base_of<LatticeBase, LatticeT>::value,
+                "ConstructtJMPOGenerator expects a lattice derived from LatticeBase");
+  using Link = LatticeBase::Link;
   const double t1 = model_params.t,
       t2 = model_params.t2,
       J = model_params.J,

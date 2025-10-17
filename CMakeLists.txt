@@ -186,6 +186,7 @@ add_executable(vmps1FM src/vmps1FM.cpp $<TARGET_OBJECTS:common_objects>)
 add_executable(vmps src/vmps.cpp $<TARGET_OBJECTS:common_objects>)
 add_executable(measure1 src/measure1.cpp $<TARGET_OBJECTS:common_objects>)
 add_executable(measureSC src/measureSC_fix_ref.cpp $<TARGET_OBJECTS:common_objects>)
+add_executable(plot_lattice src/plot_lattice.cpp)
 
 add_executable(move_center src/move_center.cpp $<TARGET_OBJECTS:common_objects>)
 if (NOT QLMPS_USE_GPU)

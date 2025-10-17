@@ -15,6 +15,7 @@
 #include "params_case.h"
 #include "myutil.h"
 #include "squarelattice.h"
+#include "honeycomb_lattice.h"
 #include "tJmodel.h"
 
 using namespace qlmps;
@@ -24,7 +25,7 @@ using namespace std;
 int main(int argc, char *argv[]) {
   CaseParams params(argv[1]);
   size_t Lx = params.Lx, Ly = params.Ly;
-  size_t N = Lx * Ly;
+  size_t N = ComputeTotalSites(params);
   tJModelParamters model_params(params);
   model_params.Print();
   clock_t startTime, endTime;
@@ -57,26 +58,39 @@ int main(int argc, char *argv[]) {
 
   qlmps::MPOGenerator<TenElemT, U1U1QN> mpo_gen(sites, qn0);
 
-  if (Ly == 2) {
+  const bool is_honeycomb = IsHoneycombGeometry(params);
+
+  if (!is_honeycomb && Ly == 2) {
     SquareLadder lattice(Lx);
     cout << "lattice construct" << std::endl;
     ConstructtJMPOGenerator(mpo_gen, lattice, model_params);
-  } else if (params.Geometry == "Cylinder") {
+  } else if (params.Geometry == "SquareCylinder") {
     SquareCylinder lattice(Ly, Lx);
     cout << "lattice construct" << std::endl;
     ConstructtJMPOGenerator(mpo_gen, lattice, model_params);
-  } else if (params.Geometry == "OBC") {
+  } else if (params.Geometry == "SquareOBC") {
     SquareOBC lattice(Ly, Lx);
     cout << "lattice construct" << std::endl;
     ConstructtJMPOGenerator(mpo_gen, lattice, model_params);
-  } else if (params.Geometry == "Rotated") {
+  } else if (params.Geometry == "SquareRotated") {
     SquareRotatedCylinder lattice(Ly, Lx);
     cout << "lattice construct" << std::endl;
     ConstructtJMPOGenerator(mpo_gen, lattice, model_params);
-  } else if (params.Geometry == "Torus") {
+  } else if (params.Geometry == "SquareTorus") {
     SquareTorus lattice(Ly, Lx);
     cout << "lattice construct" << std::endl;
     ConstructtJMPOGenerator(mpo_gen, lattice, model_params);
+  } else if (params.Geometry == "HoneycombXC") {
+    HoneycombXCCylinder lattice(Ly, Lx);
+    cout << "honeycomb lattice construct" << std::endl;
+    ConstructtJMPOGenerator(mpo_gen, lattice, model_params);
+  } else if (params.Geometry == "HoneycombYC") {
+    HoneycombYCCylinder lattice(Ly, Lx);
+    cout << "honeycomb lattice construct" << std::endl;
+    ConstructtJMPOGenerator(mpo_gen, lattice, model_params);
+  } else {
+    std::cerr << "[error] Unsupported geometry '" << params.Geometry << "'" << std::endl;
+    std::exit(EXIT_FAILURE);
   }
 
   auto mat_repr_mpo = mpo_gen.GenMatReprMPO();

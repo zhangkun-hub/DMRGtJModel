@@ -18,8 +18,7 @@ using namespace qlten;
 
 int main(int argc, char *argv[]) {
   CaseParams params(argv[1]);
-  size_t Lx = params.Lx;
-  size_t N = Lx * params.Ly;
+  size_t N = ComputeTotalSites(params);
   size_t ref_site = 0;
   if (argc > 2) {
     ref_site = std::atoi(argv[2]);

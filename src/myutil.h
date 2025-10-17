@@ -3,9 +3,13 @@
 #include <stdlib.h>
 #include <vector>
 
+#include "params_case.h"
+
 size_t GetNumofMps();
 void Show(std::vector<size_t> v);
 bool ParserBondDimension(int, char *[], std::vector<size_t>& );
+size_t ComputeTotalSites(const CaseParams &params);
+bool IsHoneycombGeometry(const CaseParams &params);
 
 
 //below is useless for t-J model
