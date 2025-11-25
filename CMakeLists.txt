@@ -128,17 +128,7 @@ else ()
     message(STATUS "HPTT Lib : " "${hptt_LIBRARY}")
 endif ()
 
-if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
-    set(BLA_VENDOR Intel10_64lp)   #FOR VENDOR CHOICE: https://cmake.org/cmake/help/latest/module/FindBLAS.html
-    set(BLAS_INCLUDE_DIR "$ENV{MKLROOT}/include")
-elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "arm64") # (e.g., Apple Silicon)
-    add_definitions(-DUSE_OPENBLAS)
-    set(BLA_VENDOR OpenBLAS)
-    set(OpenBLAS_ROOT "/opt/homebrew/opt/openblas/") #work for homebrew installed openblas in MacOSX
-    set(Lapack_ROOT "/opt/homebrew/opt/lapack")
-    set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${OpenBLAS_ROOT} ${Lapack_ROOT}) # For find
-    set(BLAS_INCLUDE_DIR "${OpenBLAS_ROOT}/include")
-endif ()
+include(MathBackend)
 
 FIND_PACKAGE(BLAS REQUIRED)
 FIND_PACKAGE(LAPACK REQUIRED)
@@ -157,7 +147,7 @@ if (NOT BLA_VENDOR STREQUAL "Intel10_64lp" OR CMAKE_CXX_COMPILER_ID STREQUAL "In
 endif ()
 
 include_directories(
-        ${BLAS_INCLUDE_DIR}
+        ${BLAS_INCLUDE_DIRS}
         ${MPI_CXX_HEADER_DIR}
         ${TENSOR_HEADER_PATH}
         ${MPS_HEADER_PATH})

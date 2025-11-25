@@ -12,6 +12,8 @@
 #include "tJ_hilbert_space.h"
 #include "params_case.h"
 #include "myutil.h"
+#include "squarelattice.h"
+#include "my_measure.h"
 
 using namespace qlmps;
 using namespace qlten;
@@ -58,6 +60,33 @@ int main(int argc, char *argv[]) {
   DumpMeasuRes(single_particle_corr2, "single_particle_corr2");
   DumpMeasuRes(single_particle_corr3, "single_particle_corr3");
   DumpMeasuRes(single_particle_corr4, "single_particle_corr4");
+
+  if (params.Geometry == "SquareOBC") {
+    SquareOBC lattice(params.Ly, params.Lx);
+    auto convert_links = [](const std::vector<std::tuple<size_t, size_t>> &links) {
+      std::vector<std::pair<size_t, size_t>> res;
+      res.reserve(links.size());
+      for (const auto &l : links) res.emplace_back(std::get<0>(l), std::get<1>(l));
+      return res;
+    };
+
+    auto nn_links = convert_links(lattice.nearest_neighbor_links);
+    auto nnn_links = convert_links(lattice.next_nearest_neighbor_links);
+
+    // Measure NN
+    auto nn_down = MeasureBonds(mps, kMpsPath, nn_links, bdnc, bdna, f);
+    DumpMeasuRes(nn_down, "hopping_nn_down");
+
+    auto nn_up = MeasureBonds(mps, kMpsPath, nn_links, bupc, bupa, f);
+    DumpMeasuRes(nn_up, "hopping_nn_up");
+
+    // Measure NNN
+    auto nnn_down = MeasureBonds(mps, kMpsPath, nnn_links, bdnc, bdna, f);
+    DumpMeasuRes(nnn_down, "hopping_nnn_down");
+
+    auto nnn_up = MeasureBonds(mps, kMpsPath, nnn_links, bupc, bupa, f);
+    DumpMeasuRes(nnn_up, "hopping_nnn_up");
+  }
 
   two_site_timer.PrintElapsed();
   endTime = clock();
