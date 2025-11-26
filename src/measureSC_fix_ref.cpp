@@ -6,6 +6,7 @@
 */
 #include "qlmps/qlmps.h"
 #include "qlten/qlten.h"
+#include <mpi.h>
 #include <algorithm>
 #include <ctime>
 #include <functional>
@@ -17,6 +18,7 @@
 #include "myutil.h"
 #include "qlten/utility/timer.h"
 #include "honeycomb_lattice.h"
+#include "my_measure.h"
 
 using FiniteMPST = qlmps::FiniteMPS<TenElemT, QNT>;
 using qlmps::SiteVec;
@@ -24,6 +26,7 @@ using qlmps::MeasureFourSiteOpGroup;
 using qlmps::kMpsPath;
 using qlmps::DumpMeasuRes;
 using qlten::Timer;
+using qlmps::MeasureBonds;
 
 namespace {
 
@@ -44,6 +47,12 @@ struct MeasureTask {
   BondList bonds;
 };
 
+/**
+ * @brief Factory function to create a HoneycombLattice object based on the geometry parameter.
+ * 
+ * @param params Case parameters containing geometry information.
+ * @return std::unique_ptr<HoneycombLattice> Pointer to the created lattice object, or nullptr if not a honeycomb geometry.
+ */
 std::unique_ptr<HoneycombLattice> BuildHoneycombLattice(const CaseParams &params) {
   if (params.Geometry == "HoneycombXC") {
     return std::make_unique<HoneycombXCCylinder>(params.Ly, params.Lx);
@@ -54,6 +63,15 @@ std::unique_ptr<HoneycombLattice> BuildHoneycombLattice(const CaseParams &params
   return nullptr;
 }
 
+/**
+ * @brief Checks if two sites are nearest neighbors in the given lattice.
+ * 
+ * @param lattice The honeycomb lattice structure.
+ * @param site0 First site index.
+ * @param site1 Second site index.
+ * @return true If site0 and site1 are nearest neighbors.
+ * @return false Otherwise.
+ */
 bool ContainsNearestNeighbor(const HoneycombLattice &lattice,
                              size_t site0,
                              size_t site1) {
@@ -73,6 +91,15 @@ bool ContainsNearestNeighbor(const HoneycombLattice &lattice,
   return false;
 }
 
+/**
+ * @brief Determines the reference bond for square lattice geometry based on a requested start site.
+ * 
+ * @param requested_start The user-requested starting site for the reference bond.
+ * @param total_sites Total number of sites in the system.
+ * @param Ly Width of the system (cylinder circumference).
+ * @param params Case parameters.
+ * @return Bond The determined reference bond {site0, site1}.
+ */
 Bond DetermineSquareReferenceBond(size_t requested_start,
                                   size_t total_sites,
                                   size_t Ly,
@@ -104,6 +131,19 @@ Bond DetermineSquareReferenceBond(size_t requested_start,
   return Bond{site0, site1};
 }
 
+/**
+ * @brief Determines the reference bond for honeycomb lattice geometry.
+ * 
+ * Validates and potentially adjusts the requested start site to ensure the bond is a valid
+ * nearest-neighbor link compatible with the specific honeycomb geometry (XC or YC).
+ * 
+ * @param requested_start The user-requested starting site.
+ * @param total_sites Total number of sites.
+ * @param Ly Lattice width.
+ * @param params Case parameters.
+ * @param lattice The honeycomb lattice structure.
+ * @return Bond The valid reference bond.
+ */
 Bond DetermineHoneycombReferenceBond(size_t requested_start,
                                      size_t total_sites,
                                      size_t Ly,
@@ -186,6 +226,9 @@ Bond DetermineHoneycombReferenceBond(size_t requested_start,
   return Bond{candidate, candidate + 1};
 }
 
+/**
+ * @brief Main dispatcher to determine reference bond based on geometry.
+ */
 Bond DetermineReferenceBond(size_t requested_start,
                             size_t total_sites,
                             size_t Ly,
@@ -197,8 +240,19 @@ Bond DetermineReferenceBond(size_t requested_start,
   return DetermineSquareReferenceBond(requested_start, total_sites, Ly, params);
 }
 
+/**
+ * @brief Builds target bond lists for honeycomb lattice.
+ * 
+ * Groups bonds by direction (A, B, C) and filters them based on the reference threshold.
+ * 
+ * @param lattice Honeycomb lattice structure.
+ * @param ref_threshold Site index threshold; bonds involving sites <= this are ignored (unless ignore_threshold is true).
+ * @param ignore_threshold If true, includes all bonds regardless of position relative to reference.
+ * @return std::array<BondList, 3> Array of bond lists for directions A, B, and C.
+ */
 std::array<BondList, 3> BuildHoneycombTargetBonds(const HoneycombLattice &lattice,
-                                                  size_t ref_threshold) {
+                                                  size_t ref_threshold,
+                                                  bool ignore_threshold = false) {
   std::array<BondList, 3> targets;
   std::unordered_set<std::pair<size_t, size_t>, PairHash> seen;
   seen.reserve(lattice.nearest_neighbor_links.size());
@@ -208,7 +262,7 @@ std::array<BondList, 3> BuildHoneycombTargetBonds(const HoneycombLattice &lattic
     if (site0 > site1) {
       std::swap(site0, site1);
     }
-    if (site0 <= ref_threshold || site1 <= ref_threshold) {
+    if (!ignore_threshold && (site0 <= ref_threshold || site1 <= ref_threshold)) {
       continue;
     }
     if (!seen.insert({site0, site1}).second) {
@@ -232,6 +286,87 @@ std::array<BondList, 3> BuildHoneycombTargetBonds(const HoneycombLattice &lattic
   return targets;
 }
 
+/**
+ * @brief Generates all target bonds to be measured.
+ * 
+ * Supports both Square and Honeycomb geometries.
+ * 
+ * @param params Case parameters.
+ * @param ref_threshold Threshold for filtering bonds "behind" the reference bond.
+ * @param honeycomb_lattice Pointer to HoneycombLattice if applicable.
+ * @param ignore_threshold Whether to ignore the reference threshold (e.g. for local pairing measurement).
+ * @return std::vector<MeasureTask> List of measurement tasks grouped by bond type/direction.
+ */
+std::vector<MeasureTask> GenerateTargetBonds(const CaseParams &params,
+                                             size_t ref_threshold,
+                                             const HoneycombLattice* honeycomb_lattice,
+                                             bool ignore_threshold = false) {
+  const size_t Lx = params.Lx;
+  const size_t Ly = params.Ly;
+  std::vector<MeasureTask> tasks;
+  tasks.reserve(4);
+
+  if (honeycomb_lattice) {
+    auto targets = BuildHoneycombTargetBonds(*honeycomb_lattice, ref_threshold, ignore_threshold);
+    const std::array<std::string, 3> labels{"scsA", "scsB", "scsC"};
+    for (size_t idx = 0; idx < targets.size(); ++idx) {
+      if (!targets[idx].empty()) {
+        tasks.push_back(MeasureTask{labels[idx], std::move(targets[idx])});
+      }
+    }
+  } else {
+    BondList target_y_bond;
+    BondList target_x_bond;
+    target_y_bond.reserve(Lx * Ly);
+    target_x_bond.reserve(Lx * Ly);
+
+    for (size_t x = 0; x < Lx; ++x) {
+      for (size_t y = 0; y < Ly; ++y) {
+        const size_t site0 = x * Ly + y;
+        const size_t site1 = (y + 1) % Ly + Ly * x;
+        if (!ignore_threshold && (site0 <= ref_threshold || site1 <= ref_threshold)) {
+          continue;
+        }
+        if (params.Geometry == "SquareOBC") {
+          if (y < Ly - 1) {
+            target_y_bond.push_back({site0, site1});
+          }
+        } else if (params.Geometry == "SquareCylinder") {
+          if (y == 0) {
+            target_y_bond.push_back({site0, site1});
+            const size_t wrap_site = site0 + Ly - 1;
+            if (!ignore_threshold && wrap_site <= ref_threshold) {
+              continue;
+            }
+            target_y_bond.push_back({site0, wrap_site});
+          } else if (y < Ly - 1) {
+            target_y_bond.push_back({site0, site1});
+          }
+        }
+      }
+    }
+
+    for (size_t x = 0; x + 1 < Lx; ++x) {
+      for (size_t y = 0; y < Ly; ++y) {
+        const size_t site0 = x * Ly + y;
+        const size_t site1 = y + Ly * (x + 1);
+        if (!ignore_threshold && (site0 <= ref_threshold || site1 <= ref_threshold)) {
+          continue;
+        }
+        target_x_bond.push_back({site0, site1});
+      }
+    }
+
+    if (!target_y_bond.empty()) {
+      tasks.push_back(MeasureTask{"scsyy", std::move(target_y_bond)});
+    }
+    if (!target_x_bond.empty()) {
+      tasks.push_back(MeasureTask{"scsyx", std::move(target_x_bond)});
+    }
+  }
+  return tasks;
+}
+
 } // namespace
 
 void PerformMeasureSC(int rank,
@@ -246,33 +381,22 @@ void PerformMeasureSC(int rank,
 
 // When used to measure, note if should not set start too small to exceed canonical center.
 bool Parser(const int argc, char *argv[],
-            size_t &start,
-            size_t &end) {
+            size_t &start) {
   int nOptionIndex = 1;
 
   std::string arguement1 = "--start=";
-  std::string arguement2 = "--end=";
-  bool start_argument_has(false), end_argument_has(false);
+  bool start_argument_has(false);
   while (nOptionIndex < argc) {
     if (strncmp(argv[nOptionIndex], arguement1.c_str(), arguement1.size()) == 0) {
       std::string para_string = &argv[nOptionIndex][arguement1.size()];
       start = atoi(para_string.c_str());
       start_argument_has = true;
-    } else if (strncmp(argv[nOptionIndex], arguement2.c_str(), arguement2.size()) == 0) {
-      std::string para_string = &argv[nOptionIndex][arguement2.size()];
-      end = atoi(para_string.c_str());
-      end_argument_has = true;
     }
     nOptionIndex++;
   }
 
-  if (start_argument_has != end_argument_has) {
-    std::cout << "Only setting one start/end argument, exit(1)." << std::endl;
-    exit(1);
-  }
-
   if (!start_argument_has) {
-    std::cout << "Note: no start/end argument, set it by default (L/4, 3*L/4+2)." << std::endl;
+    std::cout << "Note: no start argument, set it by default (1)." << std::endl;
   }
 
   return start_argument_has;
@@ -291,8 +415,7 @@ int main(int argc, char *argv[]) {
   startTime = clock();
 
   size_t start;
-  size_t endx;
-  bool start_argument_has = Parser(argc, argv, start, endx);
+  bool start_argument_has = Parser(argc, argv, start);
 
   CaseParams params(argv[1]);
 
@@ -305,7 +428,6 @@ int main(int argc, char *argv[]) {
 
   if (!start_argument_has) {
     start = 1; // default start site for pairing measurement
-    endx = start + Lx / 2 + 2;
   }
 
   tJOperators ops;
@@ -323,6 +445,7 @@ int main(int argc, char *argv[]) {
 
   std::cout << "measured SC correlation function.<====" << std::endl;
   foursite_timer.PrintElapsed();
+
 #if SYM_LEVEL == 0
   /**
    * Effectively measure local pairing:
@@ -331,17 +454,81 @@ int main(int argc, char *argv[]) {
    * The \pm 1 components of the local triplet pairs are forbidden by spin U1 symmetry
    * which should degenerate with C and D if SU(2) symmetry is restored.
    */
-  sc_phys_ops_a = {ops.id, ops.id, ops.bupa, ops.bdna};
-  sc_phys_ops_b = {ops.id, ops.id, ops.bdna, ops.bupa};
-  sc_phys_ops_c = {ops.id, ops.id, ops.bupc, ops.bupc};
-  sc_phys_ops_d = {ops.id, ops.id, ops.bdnc, ops.bdnc};
-  PerformMeasureSC(rank, mpi_size, 0, params, sc_phys_ops_a, sc_phys_ops_b, sc_phys_ops_c, sc_phys_ops_d, ops.f);
+
+  const SiteVec<TenElemT, QNT> sites = tj_site.GenUniformSites<TenElemT>(N);
+  FiniteMPST mps(sites);
+  auto honeycomb_lattice = BuildHoneycombLattice(params);
+
+  // Generate all bonds, ignoring reference threshold
+  auto local_tasks = GenerateTargetBonds(params, 0, honeycomb_lattice.get(), true);
+
+  struct MeasureOp {
+    std::string suffix;
+    Tensor op1;
+    Tensor op2;
+  };
+
+  // Corresponding to old logic:
+  // a: bupa, bdna
+  // b: bdna, bupa
+  // c: bupc, bupc (forbidden by spin U1 symmetry, should be 0)
+  // d: bdnc, bdnc (forbidden by spin U1 symmetry, should be 0)
+  // We only measure a and b.
+  std::vector<MeasureOp> meas_ops = {
+    {"a", ops.bupa, ops.bdna},
+    {"b", ops.bdna, ops.bupa}
+  };
+
+  int task_counter = 0;
+  for (const auto& task : local_tasks) {
+    if (task.bonds.empty()) continue;
+    
+    // Convert bonds to pair format
+    std::vector<std::pair<size_t, size_t>> bond_pairs;
+    bond_pairs.reserve(task.bonds.size());
+    for(const auto& b : task.bonds) {
+      bond_pairs.push_back({b[0], b[1]});
+    }
+    
+    for (const auto& op_pair : meas_ops) {
+      // Use MPI to distribute these independent measurements
+      // Each (Task + OpPair) is a unit of work
+      if (task_counter++ % mpi_size == rank) {
+        auto res = MeasureBonds(mps, kMpsPath, bond_pairs, op_pair.op1, op_pair.op2, ops.f);
+        // Assuming "local" suffix to distinguish from 4-point SC correlations
+        // The old code reused PerformMeasureSC with ref_bond=0, producing files with "_fix_refer0"
+        // We can match that or use something clearer.
+        // Let's stick to what the user might expect or something descriptive.
+        // Old filename format: task.label_prefix + op_suffix + "_fix_refer" + ref_bond[0]
+        // Here ref_bond[0] would be 0 effectively.
+        DumpMeasuRes(res, task.label_prefix + op_pair.suffix + "_local_pairing");
+      }
+    }
+  }
 #endif
+
   endTime = clock();
   std::cout << "CPU Time : " << (double) (endTime - startTime) / CLOCKS_PER_SEC << "s" << std::endl;
   MPI_Finalize();
   return 0;
 }
+
+/**
+ * @brief Executes the superconducting correlation measurement.
+ * 
+ * Calculates the reference bond and threshold, generates target bonds, 
+ * and then distributes the 4-point correlation measurements across MPI ranks.
+ * 
+ * @param rank Current MPI rank.
+ * @param mpi_size Total number of MPI processes.
+ * @param start Requested start site for reference bond.
+ * @param params Case parameters.
+ * @param sc_phys_ops_a Operator group A.
+ * @param sc_phys_ops_b Operator group B.
+ * @param sc_phys_ops_c Operator group C.
+ * @param sc_phys_ops_d Operator group D.
+ * @param f Fermionic parity operator.
+ */
 void PerformMeasureSC(int rank,
                       int mpi_size,
                       size_t start,
@@ -359,67 +546,7 @@ void PerformMeasureSC(int rank,
   const Bond ref_bond = DetermineReferenceBond(start, total_sites, Ly, params, honeycomb_lattice.get());
   const size_t ref_threshold = std::max(ref_bond[0], ref_bond[1]);
 
-  std::vector<MeasureTask> tasks;
-  tasks.reserve(4);
-
-  if (honeycomb_lattice) {
-    auto targets = BuildHoneycombTargetBonds(*honeycomb_lattice, ref_threshold);
-    const std::array<std::string, 3> labels{"scsA", "scsB", "scsC"};
-    for (size_t idx = 0; idx < targets.size(); ++idx) {
-      if (!targets[idx].empty()) {
-        tasks.push_back(MeasureTask{labels[idx], std::move(targets[idx])});
-      }
-    }
-  } else {
-    BondList target_y_bond;
-    BondList target_x_bond;
-    target_y_bond.reserve(Lx * Ly);
-    target_x_bond.reserve(Lx * Ly);
-
-    for (size_t x = 0; x < Lx; ++x) {
-      for (size_t y = 0; y < Ly; ++y) {
-        const size_t site0 = x * Ly + y;
-        const size_t site1 = (y + 1) % Ly + Ly * x;
-        if (site0 <= ref_threshold || site1 <= ref_threshold) {
-          continue;
-        }
-        if (params.Geometry == "SquareOBC") {
-          if (y < Ly - 1) {
-            target_y_bond.push_back({site0, site1});
-          }
-        } else if (params.Geometry == "SquareCylinder") {
-          if (y == 0) {
-            target_y_bond.push_back({site0, site1});
-            const size_t wrap_site = site0 + Ly - 1;
-            if (wrap_site <= ref_threshold) {
-              continue;
-            }
-            target_y_bond.push_back({site0, wrap_site});
-          } else if (y < Ly - 1) {
-            target_y_bond.push_back({site0, site1});
-          }
-        }
-      }
-    }
-
-    for (size_t x = 0; x + 1 < Lx; ++x) {
-      for (size_t y = 0; y < Ly; ++y) {
-        const size_t site0 = x * Ly + y;
-        const size_t site1 = y + Ly * (x + 1);
-        if (site0 <= ref_threshold || site1 <= ref_threshold) {
-          continue;
-        }
-        target_x_bond.push_back({site0, site1});
-      }
-    }
-
-    if (!target_y_bond.empty()) {
-      tasks.push_back(MeasureTask{"scsyy", std::move(target_y_bond)});
-    }
-    if (!target_x_bond.empty()) {
-      tasks.push_back(MeasureTask{"scsyx", std::move(target_x_bond)});
-    }
-  }
+  auto tasks = GenerateTargetBonds(params, ref_threshold, honeycomb_lattice.get(), false);
 
   if (tasks.empty()) {
     std::cerr << "[measureSC_fix_ref] No target bonds generated for geometry "

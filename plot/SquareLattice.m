@@ -15,6 +15,7 @@ classdef SquareLattice
         function [x_coord, y_coord] = indexToCoord(obj, site_idx)
             % Transform site index to square lattice coordinates
             % site index count from 0
+            % coordinate start from 1 
             x = fix(site_idx / obj.Ly) + 1;
             y = mod(site_idx, obj.Ly) + 1;
             x_coord = x * obj.a; % Offset every other row
@@ -92,5 +93,36 @@ classdef SquareLattice
             end
             hold off;
         end
+
+        function drawOneBondData(obj, site_idx1, site_idx2,  datum, width_scale, positive_color, negative_color)
+            hold on;
+            [x_coord1, y_coord1] = obj.indexToCoord(site_idx1);
+            [x_coord2, y_coord2] = obj.indexToCoord(site_idx2);
+            if(datum > 0)
+                bond_color = positive_color;
+            else
+                bond_color = negative_color;
+            end
+            % deal with the periodic boundary condition
+            if y_coord1 == 1 && y_coord2 == obj.Ly
+                y_coord1 = obj.Ly + 1; 
+            end
+            if y_coord1 == obj.Ly && y_coord2 == 1
+                y_coord2 = obj.Ly + 1; 
+            end
+
+            line([x_coord1,x_coord2],[y_coord1,y_coord2], ...
+                'color',bond_color,'linewidth',width_scale * abs(datum));  
+        end
+
+        function drawBondSC(obj, target_sites_set, data, width_scale, positive_color, negative_color )
+            for i = 1: size(target_sites_set, 1)
+                if data(i) ~= 0
+                    obj.drawOneBondData(target_sites_set(i, 1), target_sites_set(i,2), data(i),...
+                        width_scale, positive_color, negative_color);
+                end
+            end
+        end
+
     end
 end
