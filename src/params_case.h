@@ -90,7 +90,18 @@ struct CaseParams : public CaseParamsParserBasic {
   double t2;
   double J;
   double J2;
-  double phi;     // twist boundary condition, Phys. Rev. B 107, 075127 Eq.(5)
+  /**
+   * @brief Twist angle for flux insertion / twisted boundary condition.
+   *
+   * Currently implemented for square geometries that populate winding link lists
+   * (`direct_nn_links`, `wind_nn_links`, `direct_nnn_links`, `wind_nnn_links_*`).
+   *
+   * For honeycomb geometries (`HoneycombXC`, `HoneycombYC`), `phi` is currently
+   * ignored at runtime (a warning is emitted and `phi` is treated as zero).
+   *
+   * Reference: Phys. Rev. B 107, 075127 Eq.(5).
+   */
+  double phi;
 #if SYM_LEVEL == 0
   double mu;
 #endif

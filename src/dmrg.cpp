@@ -93,12 +93,18 @@ int main(int argc, char *argv[]) {
     if (std::abs(params.phi) > 1e-15 && rank == kMPIMasterRank) {
       std::cerr << "[warning] Honeycomb geometry ignores phi; set phi=0." << std::endl;
     }
+    if (std::abs(params.phi) > 1e-15) {
+      model_params.phi = 0.0;
+    }
     HoneycombXCCylinder lattice(Ly, Lx);
     cout << "honeycomb lattice construct" << std::endl;
     ConstructtJMPOGenerator(mpo_gen, lattice, model_params);
   } else if (params.Geometry == "HoneycombYC") {
     if (std::abs(params.phi) > 1e-15 && rank == kMPIMasterRank) {
       std::cerr << "[warning] Honeycomb geometry ignores phi; set phi=0." << std::endl;
+    }
+    if (std::abs(params.phi) > 1e-15) {
+      model_params.phi = 0.0;
     }
     HoneycombYCCylinder lattice(Ly, Lx);
     cout << "honeycomb lattice construct" << std::endl;

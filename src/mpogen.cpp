@@ -49,6 +49,7 @@ int main(int argc, char *argv[]) {
   } else if (params.Geometry == "HoneycombXC") {
     if (std::abs(params.phi) > 1e-15) {
       std::cerr << "[warning] Honeycomb geometry ignores phi; set phi=0." << std::endl;
+      model_params.phi = 0.0;
     }
     HoneycombXCCylinder lattice(Ly, Lx);
     cout << "honeycomb lattice construct" << std::endl;
@@ -56,6 +57,7 @@ int main(int argc, char *argv[]) {
   } else if (params.Geometry == "HoneycombYC") {
     if (std::abs(params.phi) > 1e-15) {
       std::cerr << "[warning] Honeycomb geometry ignores phi; set phi=0." << std::endl;
+      model_params.phi = 0.0;
     }
     HoneycombYCCylinder lattice(Ly, Lx);
     cout << "honeycomb lattice construct" << std::endl;

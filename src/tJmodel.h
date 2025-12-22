@@ -1,6 +1,7 @@
 #ifndef TJ_MODEL_H
 #define TJ_MODEL_H
 
+#include <algorithm>
 #include <type_traits>
 
 #include "qlmps/one_dim_tn/mpo/mpo.h"
@@ -29,6 +30,9 @@ inline void ConstructtJMPOGenerator(
     for (const Link &link : lattice.nearest_neighbor_links) {
       size_t site1 = std::get<0>(link);
       size_t site2 = std::get<1>(link);
+      if (site2 < site1) {
+        std::swap(site1, site2);
+      }
       assert(site1 < site2);
       mpo_gen.AddTerm(-t1, {ops.bupc, ops.bupa}, {site1, site2}, {ops.f});
       mpo_gen.AddTerm(-t1, {ops.bdnc, ops.bdna}, {site1, site2}, {ops.f});
@@ -43,6 +47,9 @@ inline void ConstructtJMPOGenerator(
     for (const Link &link : lattice.next_nearest_neighbor_links) {
       size_t site1 = std::get<0>(link);
       size_t site2 = std::get<1>(link);
+      if (site2 < site1) {
+        std::swap(site1, site2);
+      }
       assert(site1 < site2);
       mpo_gen.AddTerm(-t2, {ops.bupc, ops.bupa}, {site1, site2}, {ops.f});
       mpo_gen.AddTerm(-t2, {ops.bdnc, ops.bdna}, {site1, site2}, {ops.f});

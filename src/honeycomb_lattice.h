@@ -7,6 +7,7 @@
 #ifndef TJMODEL_SRC_HONEYCOMB_LATTICE_H
 #define TJMODEL_SRC_HONEYCOMB_LATTICE_H
 
+#include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <cstdlib>
@@ -90,33 +91,33 @@ inline HoneycombYCCylinder::HoneycombYCCylinder(size_t Ly, size_t Lx)
 
     if (x < 2 * Lx - 1) {
       if ((x + y) % 2 == 0) {
-        nearest_neighbor_links.emplace_back(i, Ty);
-        nearest_neighbor_links.emplace_back(i, Tx);
+        nearest_neighbor_links.emplace_back(std::min(i, Ty), std::max(i, Ty));
+        nearest_neighbor_links.emplace_back(std::min(i, Tx), std::max(i, Tx));
       } else {
-        nearest_neighbor_links.emplace_back(i, Tx);
+        nearest_neighbor_links.emplace_back(std::min(i, Tx), std::max(i, Tx));
       }
     } else if (y % 2 == 1) {
-      nearest_neighbor_links.emplace_back(i, Ty);
+      nearest_neighbor_links.emplace_back(std::min(i, Ty), std::max(i, Ty));
     }
 
     if (x < 2 * Lx - 2) {
-      next_nearest_neighbor_links.emplace_back(i, Txx);
-      next_nearest_neighbor_links.emplace_back(i, Txy);
-      next_nearest_neighbor_links.emplace_back(i, Txmy);
+      next_nearest_neighbor_links.emplace_back(std::min(i, Txx), std::max(i, Txx));
+      next_nearest_neighbor_links.emplace_back(std::min(i, Txy), std::max(i, Txy));
+      next_nearest_neighbor_links.emplace_back(std::min(i, Txmy), std::max(i, Txmy));
     } else if (x == 2 * Lx - 2) {
-      next_nearest_neighbor_links.emplace_back(i, Txy);
-      next_nearest_neighbor_links.emplace_back(i, Txmy);
+      next_nearest_neighbor_links.emplace_back(std::min(i, Txy), std::max(i, Txy));
+      next_nearest_neighbor_links.emplace_back(std::min(i, Txmy), std::max(i, Txmy));
     }
 
     if (x < 2 * Lx - 2) {
       if ((x + y) % 2 == 1) {
-        third_nearest_neighbor_links.emplace_back(i, Ty);
-        third_nearest_neighbor_links.emplace_back(i, Txxmy);
+        third_nearest_neighbor_links.emplace_back(std::min(i, Ty), std::max(i, Ty));
+        third_nearest_neighbor_links.emplace_back(std::min(i, Txxmy), std::max(i, Txxmy));
       } else {
-        third_nearest_neighbor_links.emplace_back(i, Txxy);
+        third_nearest_neighbor_links.emplace_back(std::min(i, Txxy), std::max(i, Txxy));
       }
     } else if ((x + y) % 2 == 1) {
-      third_nearest_neighbor_links.emplace_back(i, Ty);
+      third_nearest_neighbor_links.emplace_back(std::min(i, Ty), std::max(i, Ty));
     }
   }
 }
@@ -143,33 +144,33 @@ inline HoneycombXCCylinder::HoneycombXCCylinder(size_t Ly, size_t Lx)
     const size_t Txmy = (y + Ly - 1) % Ly + Ly * ((x + 1) % (2 * Lx));
 
     if (x == 0) {
-      nearest_neighbor_links.emplace_back(i, Ty);
+      nearest_neighbor_links.emplace_back(std::min(i, Ty), std::max(i, Ty));
       if (y % 2 == 0) {
-        nearest_neighbor_links.emplace_back(i, Tx);
+        nearest_neighbor_links.emplace_back(std::min(i, Tx), std::max(i, Tx));
       }
     } else if (x == 2 * Lx - 1) {
-      nearest_neighbor_links.emplace_back(i, Ty);
+      nearest_neighbor_links.emplace_back(std::min(i, Ty), std::max(i, Ty));
     } else if ((x + y) % 2 == 0) {
-      nearest_neighbor_links.emplace_back(i, Ty);
-      nearest_neighbor_links.emplace_back(i, Tx);
+      nearest_neighbor_links.emplace_back(std::min(i, Ty), std::max(i, Ty));
+      nearest_neighbor_links.emplace_back(std::min(i, Tx), std::max(i, Tx));
     } else {
-      nearest_neighbor_links.emplace_back(i, Ty);
+      nearest_neighbor_links.emplace_back(std::min(i, Ty), std::max(i, Ty));
     }
 
     if (x < 2 * Lx - 1) {
-      next_nearest_neighbor_links.emplace_back(i, Tyy);
-      next_nearest_neighbor_links.emplace_back(i, Txy);
-      next_nearest_neighbor_links.emplace_back(i, Txmy);
+      next_nearest_neighbor_links.emplace_back(std::min(i, Tyy), std::max(i, Tyy));
+      next_nearest_neighbor_links.emplace_back(std::min(i, Txy), std::max(i, Txy));
+      next_nearest_neighbor_links.emplace_back(std::min(i, Txmy), std::max(i, Txmy));
     } else {
-      next_nearest_neighbor_links.emplace_back(i, Tyy);
+      next_nearest_neighbor_links.emplace_back(std::min(i, Tyy), std::max(i, Tyy));
     }
 
     if (x < 2 * Lx - 1) {
       if ((x + y) % 2 == 0) {
-        third_nearest_neighbor_links.emplace_back(i, Txyy);
-        third_nearest_neighbor_links.emplace_back(i, Txmyy);
+        third_nearest_neighbor_links.emplace_back(std::min(i, Txyy), std::max(i, Txyy));
+        third_nearest_neighbor_links.emplace_back(std::min(i, Txmyy), std::max(i, Txmyy));
       } else {
-        third_nearest_neighbor_links.emplace_back(i, Tx);
+        third_nearest_neighbor_links.emplace_back(std::min(i, Tx), std::max(i, Tx));
       }
     }
   }
