@@ -131,24 +131,54 @@ int main(int argc, char *argv[]) {
   using FiniteMPST = qlmps::FiniteMPS<TenElemT, QNT>;
   FiniteMPST mps(sites);
 
-  std::vector<long unsigned int> stat_labs(N);
-  size_t site_number_per_hole;
-  if (params.Numhole > 0) {
-    site_number_per_hole = N / params.Numhole;
-  } else {
-    site_number_per_hole = N + 99;
+  std::vector<long unsigned int> stat_labs(N); // stat_lab[i]=0,1,2(0->up, 1->dn, 2->hole)
+  std::vector<size_t> A_sublattice, B_sublattice; // 创建存储honeycomb子晶格A/B格点的容器
+
+  // 给子晶格A/B容器填充相应的格点，并按照 Néel 序填充up/dn电子
+  for (size_t i = 0; i < N; ++i) {
+    const size_t y = i % Ly;
+    const size_t x = i / Ly;
+    const bool a_sublattice = ((x + y) % 2 == 0); 
+
+    // 满足(x + y) % 2 == 0的格点属于A子晶格
+    if (a_sublattice) {
+        A_sublattice.push_back(i);
+        stat_labs[i] = 0; // A子晶格填充 ↑
+    } else {
+        B_sublattice.push_back(i);
+        stat_labs[i] = 1; // B子晶格填充 ↓ 
+    }   
   }
 
-  size_t sz_label = 0;
-  size_t hole_num = 0;
-  for (size_t i = 0; i < N; ++i) {
-    if (i % site_number_per_hole == site_number_per_hole - 1 && hole_num < params.Numhole) {
-      stat_labs[i] = 2;
-      hole_num++;
-    } else {
-      stat_labs[i] = sz_label % 2;
-      sz_label++;
+  // 在A/B子晶格内等间距填充hole
+  if (params.Numhole > 1) {
+    // 子晶格内等间距步长
+    size_t nhalf = params.Numhole / 2; // 子晶格填充hole数目
+    size_t stepA = A_sublattice.size() / nhalf;
+    size_t stepB = B_sublattice.size() / nhalf;
+
+    // 引入错位 offset，使得子晶格之间的空穴也等间距分布
+    size_t offsetA = stepA / 2;  // 半步错位
+    size_t offsetB = 0;
+
+    for (size_t k = 0; k < nhalf; ++k) {
+        size_t idxA = (offsetA + k * stepA) % A_sublattice.size();
+        size_t idxB = (offsetB + k * stepB) % B_sublattice.size();
+
+        stat_labs[A_sublattice[idxA]] = 2;
+        stat_labs[B_sublattice[idxB]] = 2;
+      }
+
+    // 处理奇数个hole情形
+    if (2 * nhalf < params.Numhole) {
+      size_t idxB = B_sublattice.size() - 1;
+      stat_labs[B_sublattice[idxB]] = 2;
     }
+  }
+  // 处理1个hole情形
+  else if (params.Numhole == 1){
+    size_t idxB = B_sublattice.size() / 2;
+    stat_labs[B_sublattice[idxB]] = 2;
   }
 
 #ifndef USE_GPU
@@ -178,7 +208,8 @@ int main(int argc, char *argv[]) {
     qlmps::FiniteVMPSSweepParams sweep_params(
         params.Sweeps,
         params.Dmin, params.Dmax, params.CutOff,
-        qlmps::LanczosParams(params.LanczErr, params.MaxLanczIter)
+        qlmps::LanczosParams(params.LanczErr, params.MaxLanczIter),
+        params.noise   // 👈 直接用 JSON 里的 noise
     );
     e0 = qlmps::FiniteDMRG(mps, mat_repr_mpo, sweep_params, comm);
   } else {
@@ -190,7 +221,8 @@ int main(int argc, char *argv[]) {
       qlmps::FiniteVMPSSweepParams sweep_params(
           params.Sweeps,
           D, D, params.CutOff,
-          qlmps::LanczosParams(params.LanczErr, MaxLanczIterSet[i])
+          qlmps::LanczosParams(params.LanczErr, MaxLanczIterSet[i]),
+          params.noise   // 👈 直接用 JSON 里的 noise
       );
       e0 = qlmps::FiniteDMRG(mps, mat_repr_mpo, sweep_params, comm);
     }
