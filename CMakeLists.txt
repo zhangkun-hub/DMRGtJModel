@@ -174,9 +174,18 @@ add_executable(dmrg src/dmrg.cpp $<TARGET_OBJECTS:common_objects>)
 add_executable(mpogen src/mpogen.cpp $<TARGET_OBJECTS:common_objects>)
 add_executable(vmps1FM src/vmps1FM.cpp $<TARGET_OBJECTS:common_objects>)
 add_executable(vmps src/vmps.cpp $<TARGET_OBJECTS:common_objects>)
+add_executable(noised_vmps src/noised_vmps.cpp $<TARGET_OBJECTS:common_objects>)
 add_executable(measure1 src/measure1.cpp $<TARGET_OBJECTS:common_objects>)
 add_executable(measureSC src/measureSC_fix_ref.cpp $<TARGET_OBJECTS:common_objects>)
+# Extended version: user-defined reference bond
+add_executable(measureSC_fix_ref_ext
+    src/measureSC_fix_ref_extension.cpp
+    $<TARGET_OBJECTS:common_objects>
+)
+
 add_executable(plot_lattice src/plot_lattice.cpp)
+
+
 
 add_executable(move_center src/move_center.cpp $<TARGET_OBJECTS:common_objects>)
 if (NOT QLMPS_USE_GPU)
