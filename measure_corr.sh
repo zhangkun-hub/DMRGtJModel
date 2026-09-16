@@ -21,9 +21,10 @@ plotsdir="${rundir}/plots"
 paramsfile="params.json"
 
 # ================================================================
-# ★ 多 site 扫描设置（只需要改这里！！！）
+# ★ 不同 bond 下多 site 扫描设置（只需要改这里！！！）
 # ================================================================
-sites=(25 26) 
+bond=5000
+sites=(49 50) 
 
 
 
@@ -75,7 +76,7 @@ module load jq
 echo "--> Step 2.2: Running measurement using existing MPS..."
 
 # 创建存储整个测量数据的文件夹
-storage_dir="${rundir}/measure_phys_qty"
+storage_dir="${rundir}/${bond}_measure_phys_qty"
 mkdir -p "${storage_dir}"
 
 

@@ -21,9 +21,10 @@ plotsdir="${rundir}/plots"
 paramsfile="params.json"
 
 # ================================================================
-# ★ 多 refbonds 扫描设置（只需要改这里！！！）
+# ★ 不同 bond 下多 refbonds 扫描设置（只需要改这里！！！）
 # ================================================================
-refbonds=("25,26" "26,27" "26,30") 
+bond=5000
+refbonds=("49,50" "50,51" "50,54") 
 
 
 
@@ -75,7 +76,7 @@ module load jq
 echo "--> Step 2.2: Running measurement using existing MPS..."
 
 # 创建存储整个超导数据的文件夹
-storage_dir="${rundir}/measure_super_corr"
+storage_dir="${rundir}/${bond}_measure_super_corr"
 mkdir -p "${storage_dir}"
 
 # 超导关联函数的计算
