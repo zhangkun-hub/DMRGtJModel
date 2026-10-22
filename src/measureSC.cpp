@@ -10,7 +10,7 @@
 
     NOTE: This legacy binary is kept for square-lattice workflows only and is
     not planned to support the upcoming honeycomb geometry. For honeycomb t-J
-    simulations, use measureSC_fix_ref.cpp (and its successor binaries).
+    simulations, use measureSC_fix_ref_extension.cpp (and its successor binaries).
 */
 #include "qlmps/qlmps.h"
 #include "qlten/qlten.h"
