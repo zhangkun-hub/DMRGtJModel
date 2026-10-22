@@ -45,3 +45,6 @@ run/
 
 # MacOSX
 .DS_Store
+
+# Skill evaluation archive (kept locally for re-running evals)
+.claude/skills/dmrgtj-calculation-workspace/
