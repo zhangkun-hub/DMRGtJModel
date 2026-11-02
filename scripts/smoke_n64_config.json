@@ -1,0 +1,6 @@
+{
+  "_comment": "N=64 冒烟配置：refbond 的唯一事实来源（run 与 verify 均读本文件，不得另立硬编码）",
+  "single_refbond": "0,1",
+  "refbonds": ["0,1", "0,4"],
+  "reverse_channels": true
+}

@@ -176,7 +176,10 @@ add_executable(vmps1FM src/vmps1FM.cpp $<TARGET_OBJECTS:common_objects>)
 add_executable(vmps src/vmps.cpp $<TARGET_OBJECTS:common_objects>)
 add_executable(noised_vmps src/noised_vmps.cpp $<TARGET_OBJECTS:common_objects>)
 add_executable(measure1 src/measure1.cpp $<TARGET_OBJECTS:common_objects>)
-add_executable(measureSC src/measureSC_fix_ref.cpp $<TARGET_OBJECTS:common_objects>)
+# NOTE: the legacy `measureSC` target was removed together with its source
+# src/measureSC_fix_ref.cpp (commit 5438feb, deliberate removal); it is
+# superseded by the measureSC_fix_ref_ext target below. src/measureSC.cpp
+# remains in the tree as unreferenced legacy code (square-lattice only).
 # Extended version: user-defined reference bond
 add_executable(measureSC_fix_ref_ext
     src/measureSC_fix_ref_extension.cpp
