@@ -304,6 +304,9 @@ def test_env_switch():
     assert "-DCMAKE_C_COMPILER=gcc" not in text
     # default 分支仍走 myenv.sh + gcc 版本校验
     assert "CMAKE_CC=gcc" in text and "CMAKE_CXX=g++" in text
+    # intel2022 分支 source vars.sh 期间须关闭 nounset（fpgavars.sh 读取
+    # 未定义变量，set -u 下会 "unbound variable" 中断）
+    assert "set +u" in text and "set -u" in text
     print("  [PASS] 18. SMOKE_ENV 口径开关（default GNU / intel2022 icpc）")
 
 

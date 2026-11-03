@@ -97,10 +97,15 @@ case "${SMOKE_ENV}" in
     module purge 2>/dev/null || true
     export PATH=/share/software/gcc/12.1.0/bin:$PATH
     export LD_LIBRARY_PATH=/share/software/gcc/12.1.0/lib64:$LD_LIBRARY_PATH
+    # Intel vars.sh 内部脚本（如 oclfpga/fpgavars.sh）会读取未定义变量
+    # （OCL_ICD_FILENAMES 等），在 set -u 下报 "unbound variable" 中断；
+    # source 期间临时关闭 nounset（保留 -e：source 真失败仍会退出）。
+    set +u
     source /share/intel/2022.2.0/compiler/latest/env/vars.sh
     source /share/intel/2022.2.0/mkl/latest/env/vars.sh
     source /share/intel/2022.2.0/mpi/latest/env/vars.sh
     source /share/software/anaconda3/bin/activate
+    set -u
     module use /share/software/modulefiles 2>/dev/null || true
     module load jq 2>/dev/null || true
     command -v icpc >/dev/null 2>&1 || die "icpc 不可用（检查 Intel 2022.2.0 compiler vars.sh）"
