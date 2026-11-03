@@ -149,7 +149,9 @@ echo "complex build OK: ${RUN_DIR}/build_complex"
 # ---------- 计算与测量 ----------
 RUN_DMRG(){ # RUN_DMRG <workdir> <dmrg_binary> <--D=...>
   local wd=$1; local bin=$2; local dflag=$3
-  mkdir "${wd}" || die "工作目录创建失败：${wd}"
+  # 工作目录可已存在：同一次运行内 D=100→D=300 有意共用 mps 续跑；
+  # 跨运行复用由唯一运行目录机制阻止。
+  mkdir -p "${wd}" || die "工作目录创建失败：${wd}"
   cd "${wd}"
   cp "${PARAMS_SRC}" params.json
   mpirun -n ${NTASKS} "${bin}" params.json "$dflag" \
