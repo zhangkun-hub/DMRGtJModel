@@ -50,6 +50,10 @@ __pycache__/
 smoke_n64/
 /step_log.txt
 
+# Archived DMRG logs copied back for reference
+N200/
+N400/
+
 # MacOSX
 .DS_Store
 
