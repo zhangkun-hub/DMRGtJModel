@@ -56,7 +56,13 @@ NTASKS=${SLURM_NTASKS:-4}
 # ---------- 环境（与用户 ${HOME}/myenv.sh 同源，避免脚本内模块名过期） ----------
 module purge 2>/dev/null || true
 if [ -f "${HOME}/myenv.sh" ]; then
+  # setvars.sh 在环境已由登录 shell 继承时会"跳过重跑"并可能返回非零；
+  # 容忍其返回码，改由下面的 command -v 硬校验兜底（环境真缺失会明确 FAIL）。
+  set +e
   source "${HOME}/myenv.sh"
+  MYENV_RC=$?
+  set -e
+  echo "note: source ${HOME}/myenv.sh rc=${MYENV_RC}（rc!=0 但下方环境校验通过时可忽略）"
 else
   die "缺少 ${HOME}/myenv.sh（cmake/gcc/jq 模块 + oneAPI setvars 的集群环境初始化脚本）"
 fi
