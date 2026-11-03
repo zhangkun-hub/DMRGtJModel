@@ -70,6 +70,12 @@ command -v cmake >/dev/null 2>&1 || die "cmake 不可用（检查 ${HOME}/myenv.
 command -v mpirun >/dev/null 2>&1 || die "mpirun 不可用（检查 oneAPI setvars 是否生效）"
 command -v "${PYTHON_BIN}" >/dev/null 2>&1 \
   || die "python3 不可用（请在 ${HOME}/myenv.sh 中补充 python 模块或确认系统 python3）"
+# libhptt.a 是用新版 GCC 编译的（引用 GCC 11+ libstdc++ 符号），必须用
+# myenv.sh 的 gcc 模块（12.1.0）而非系统 cc（8.3.1）构建，否则链接失败。
+GCC_VER_LINE=$(gcc --version 2>/dev/null | head -1 || true)
+GCC_MAJOR=$(echo "${GCC_VER_LINE}" | grep -oE "[0-9]+" | head -1 || true)
+[ -n "${GCC_MAJOR}" ] && [ "${GCC_MAJOR}" -ge 11 ] \
+  || die "gcc 版本过旧或不可用（${GCC_VER_LINE:-无}）：需要 >= 11（libhptt.a 工具链匹配）。请确认 myenv.sh 的 gcc/12.1.0 模块已生效"
 
 # ---------- step 0: 环境记录与依赖验证（先读后记，失败信息明确） ----------
 ENV_REC="${RUN_DIR}/smoke_env_record.txt"
@@ -117,16 +123,16 @@ SINGLE_REF=$(cfg_get "${CONFIG_SRC}" single_refbond)
 N_SITES=$(( 2 * LY * LX ))
 
 # ---------- 构建（独立目录，fail-closed 创建） ----------
-# 只构建冒烟所需目标：plot_lattice 在 GCC 8 下因 std::filesystem 缺少
-# -lstdc++fs 链接失败（与本任务无关的既有问题），跳过全目标构建。
-# 注意：不传 -fopenmp——GNU 8 拒绝 qlten 头文件中的 OpenMP shared 子句写法
-# （const 变量 predetermined shared 报错），pragma 被忽略即张量运算串行，
-# 只影响性能不影响正确性（生产用 Intel icpc 编译，等价性待后续评估）。
+# 显式用 gcc/g++（myenv 模块 12.1.0，与 libhptt.a 工具链匹配）；
+# 只构建冒烟所需目标（plot_lattice 的 std::filesystem 链接问题与本任务
+# 无关，跳过全目标构建）；不启用 OpenMP（qlten 头文件 pragma 写法在
+# GNU 下会报错，pragma 被忽略即张量运算串行，只影响性能不影响正确性）。
 BUILD(){ # BUILD <rel_dir> [cmake flags...]
   local dir=$1; shift
   ensure_new_dir "${RUN_DIR}/${dir}"
   cd "${RUN_DIR}/${dir}"
   cmake "${REPO_ROOT}" -DCMAKE_PREFIX_PATH="${PREFIX}" \
+    -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ \
     "${HPTT_FLAGS[@]}" "$@" \
     | tee cmake.log
   make -j8 dmrg measure1 measureSC_fix_ref_ext | tee make.log
