@@ -35,9 +35,21 @@ print("\n".join(str(x) for x in cfg[sys.argv[2]]))
 PY
 }
 
-# px <params_json> <key>          -> params.json 标量读取（等价 cfg_get）
+# px <params_json> <key>          -> params.json 标量读取（兼容 CaseParams 包装）
 px() {
-  cfg_get "$1" "$2"
+  ${PYTHON_BIN} - "$1" "$2" <<'PY'
+import json
+import sys
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(newline="\n")
+cfg = json.load(open(sys.argv[1], encoding="utf-8"))
+d = cfg.get("CaseParams", cfg)
+v = d[sys.argv[2]]
+if isinstance(v, bool):
+    print("true" if v else "false")
+else:
+    print(v)
+PY
 }
 
 # die <message...>                -> stderr 报错并退出 1
