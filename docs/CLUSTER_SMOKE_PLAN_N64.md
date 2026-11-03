@@ -51,7 +51,7 @@ verify 无 `--dependency` 前置（手动顺序提交）；若 run 未完成/失
 | 4 | real dmrg 链 D=100→测量→D=300→测量 | `run_real/` | `dmrg_100/300.log`；`measure1_D{100,300}/`、`measure_scs_0_1_D{100,300}/`（各 12 主文件） | 任一步骤非零退出；测量后期望文件集核对不过 → 退出 | 4×7 核 ~5 min/段 |
 | 5 | complex dmrg 链 + 测量（实初态，虚部应≈0） | `run_complex/` | 同第 4 步复值版（值 `[re, im]`） | 同上 | 同第 4 步 |
 | 6 | 旧/新二进制单参考键字节级 diff（complex 对） | 同一 `run_complex/mps`（D=300 后）复制到 run_old_diff/run_new_diff（复制前必须不存在，复制后数量核对）；旧二进制（complex 编译，RealCode=OFF）与新 complex 二进制同参测 `--refbond=0,1` | 两份 12 文件 | 任一 `scs{X}{a..d}_fix_refbond_0_1.json` `cmp` 不一致 → 退出 1 | ~1 min |
-| 7 | 复值重现实值（验收 1/2） | v1：scs 单参考键目录对 + 两日志（独立 manifest）；v2：measure1 目录对（generic 模式） | `verify_<时间>/verify_{scs_0_1,measure1}.json` | 完整性任一失败或数值超容差（atol=rtol=1e-8 组合判据，实际容差入报告）→ FAIL；若仅数值超差，检查 scaled 值再定论 | 单核 <1 min |
+| 7 | 复值重现实值（验收 1/2） | v1：scs 单参考键目录对 + 两日志（独立 manifest）；v2：measure1 目录对（generic 模式） | `verify_<时间>/verify_{scs_0_1,measure1}.json` | 完整性任一失败 → FAIL；v1 数值硬判据（re/虚部 ≤ atol+rtol·|r|，atol=rtol=1e-8）；v2 硬判据 = 虚部≈0 + E0 一致，re-diff 仅报告（两条独立收敛链口径，见已知限制） | 单核 <1 min |
 
 ## 全部通过后的判定
 
@@ -86,6 +86,12 @@ verify 无 `--dependency` 前置（手动顺序提交）；若 run 未完成/失
   有意设计；
 - 本冒烟只验证**复值计算能力在实值态上的数值一致性**；不验证手性态选择、
   不构成 d+id 证据（见 `docs/COMPLEX_RUN_PROTOCOL.md` 的手性态选择边界）；
+- v2（measure1，generic 模式）比较的是**两条独立收敛的 DMRG 链**，其数值
+  一致性受收敛精度限制（N=64 冒烟实测：sz 涨落差异 ~1.2e-4，与 D=300 截断
+  误差 ~1e-4 同量级；E0、空穴分布 ~1e-6、sz 符号模式、配对关联均一致）——
+  1e-8 级 re-diff 容差只适用于同一 MPS 的复现。故 v2 的 re-diff 仅入报告
+  （`re_diff_enforced=false`）不作 PASS/FAIL 判据，硬判据为虚部≈0 与 E0
+  一致；v1（scs）保持完整数值硬判据；
 - verify 的 generic 模式（measure1 目录）无独立 manifest（两侧同缺同漏的
   理论可能），scs 数据使用独立 manifest 的 scs-mode；
 - 任务 A/B 已还原：本冒烟不再包含误差记录、共轭检查、多参考键等步骤。

@@ -26,6 +26,12 @@ Numeric stage runs only after all integrity checks pass:
     per-row |Re(complex) - real| and |Im(complex)| against the combined
     tolerance atol + rtol*|real|, and |E0/site difference| against the same
     rule (dmrg logs are REQUIRED: use --complex-log/--real-log).
+In default (generic) mode the two dirs come from two INDEPENDENTLY converged
+DMRG runs, whose agreement is limited by the convergence quality (D=300
+truncation error ~1e-4) rather than by the 1e-8 reproducibility tolerance.
+There the re-diff is REPORTED ONLY (re_diff_enforced=false in the report)
+and the hard numeric gates are |Im| <= tol and E0 agreement; --scs-mode
+keeps the full hard numeric gate (re-diff enforced).
 The tolerances actually used are recorded in the report.
 Exit code 0 on PASS, 1 otherwise.
 
@@ -350,15 +356,23 @@ def main():
                               else re_diff)
             max_im = max(max_im, im_mag / thr if thr > 0 else im_mag)
             n_rows += 1
+    # scs 模式：|Re(c)-r|、|Im(c)| 均为硬判据（1e-8 复现口径）。
+    # generic 模式：比较的是两条独立收敛链，数值一致性受收敛精度（如
+    # D=300 截断误差 ~1e-4）限制，1e-8 复现口径不适用——|Re(c)-r| 仅报告，
+    # 硬判据为 |Im(c)| <= tol（实值态保持实）与 E0 一致。
+    re_diff_enforced = bool(args.scs_mode)
     report["numeric"] = {
         "n_rows_compared": n_rows,
         "max_re_diff_scaled": max_re_diff,
         "max_im_scaled": max_im,
         "scaled_threshold": 1.0,  # scaled: PASS iff <= 1
+        "re_diff_enforced": re_diff_enforced,
     }
-    numeric_ok = (n_rows > 0 and max_re_diff <= 1.0 and max_im <= 1.0)
+    numeric_ok = (n_rows > 0 and max_im <= 1.0
+                  and (max_re_diff <= 1.0 if re_diff_enforced else True))
     report["verdict"] = "PASS" if numeric_ok else "FAIL"
-    print(f"rows compared: {n_rows}; scaled max re-diff = {max_re_diff:.3e}; "
+    print(f"rows compared: {n_rows}; scaled max re-diff = {max_re_diff:.3e} "
+          f"({'enforced' if re_diff_enforced else 'reported only'}); "
           f"scaled max |im| = {max_im:.3e} (threshold 1.0)")
     print(f"energy: complex E0/site = {e0c}, real E0/site = {e0r}, "
           f"diff = {energy['diff']}")

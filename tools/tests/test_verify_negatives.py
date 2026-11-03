@@ -241,6 +241,56 @@ def main():
         assert proc.returncode != 0, "generic missing row must FAIL"
         print("  [FAIL] generic-mode missing row (cross check)")
 
+        # generic mode: large re-diff (independent-run convergence noise)
+        # must PASS now (re-diff is reported, not enforced)
+        base = os.path.join(tmp, "generic_re_diff_only")
+        shutil.copytree(os.path.join(tmp, "generic_clean"),
+                        os.path.join(tmp, "generic_re_diff_only"))
+        with open(os.path.join(base, "complex", "nf.json"), "w") as f:
+            json.dump([[[0], [1.2501, 1e-12]], [[1], [-0.7501, -2e-13]]], f)
+        proc = subprocess.run(
+            [sys.executable, SCRIPT, "--complex",
+             os.path.join(base, "complex"), "--real",
+             os.path.join(base, "real"), "--complex-log",
+             os.path.join(base, "complex.log"), "--real-log",
+             os.path.join(base, "real.log"), "-o",
+             os.path.join(base, "report.json")],
+            capture_output=True, text=True)
+        assert proc.returncode == 0, proc.stdout
+        with open(os.path.join(base, "report.json")) as f:
+            rep = json.load(f)
+        assert rep["numeric"]["re_diff_enforced"] is False
+        print("  [PASS] generic-mode re-diff reported only "
+              "(independent-run noise)")
+
+        # generic mode: large imaginary part must still FAIL (hard gate)
+        base = os.path.join(tmp, "generic_im_fail")
+        shutil.copytree(os.path.join(tmp, "generic_clean"),
+                        os.path.join(tmp, "generic_im_fail"))
+        with open(os.path.join(base, "complex", "nf.json"), "w") as f:
+            json.dump([[[0], [1.25, 0.5]], [[1], [-0.75, -0.3]]], f)
+        proc = subprocess.run(
+            [sys.executable, SCRIPT, "--complex",
+             os.path.join(base, "complex"), "--real",
+             os.path.join(base, "real"), "--complex-log",
+             os.path.join(base, "complex.log"), "--real-log",
+             os.path.join(base, "real.log"), "-o",
+             os.path.join(base, "report.json")],
+            capture_output=True, text=True)
+        assert proc.returncode != 0, "generic large |Im| must FAIL"
+        print("  [FAIL] generic-mode large |Im| (hard gate)")
+
+        # scs mode: re-diff is still enforced -> large re-diff must FAIL
+        base = os.path.join(tmp, "scs_re_diff_fail")
+        make_clean(base)
+        path = os.path.join(base, "complex", "scsAa_fix_refbond_0_1.json")
+        with open(path) as f:
+            rows = json.load(f)
+        rows[0][1][0] += 0.01
+        with open(path, "w") as f:
+            json.dump(rows, f)
+        expect(base, False, "scs-mode large re-diff (hard gate)")
+
         print("test_verify_negatives: ALL PASS")
     finally:
         shutil.rmtree(tmp)

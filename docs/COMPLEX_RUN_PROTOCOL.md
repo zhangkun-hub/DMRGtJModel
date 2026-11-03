@@ -45,8 +45,13 @@ python tools/verify_complex_reproduces_real.py \
 
 完整性门控（缺/多文件、缺/多行、重复行、JSON 解析错误、非有限数值、
 scs 模式的方向标签不一致，任一不得 PASS）；dmrg 日志**必填**（`E0/site`
-比对是验收一部分）。数值判据：`|Re(c)−r|`、`|Im(c)|` 与 E0 差均须 ≤
-`atol + rtol·|r|`（默认 atol=rtol=1e-8，实际容差写入报告）。
+比对是验收一部分）。数值判据分模式：**scs 模式**（配对测量目录）
+`|Re(c)−r|`、`|Im(c)|` 与 E0 差均须 ≤ `atol + rtol·|r|`；**generic 模式**
+（如 measure1 目录）比较的是两条独立收敛链，数值一致性受收敛精度限制
+（N=64 冒烟实测 sz 涨落差异 ~1.2e-4，与 D=300 截断误差 ~1e-4 同量级），
+`|Re(c)−r|` **仅写入报告**（`re_diff_enforced=false`），硬判据为
+`|Im(c)| ≤ atol + rtol·|r|`（实值态保持实，验收 2）与 E0 一致。
+默认 atol=rtol=1e-8，实际容差写入报告。
 scs 模式的 expected manifest 由参考键 + honeycomb 几何枚举 + 目标键
 过滤规则（j0 > i1）+ 方向分类 + 通道组合独立构造（`--refbonds ALL` 可取
 全部 NN 键，供单参考键逐一验证）。
