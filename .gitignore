@@ -43,6 +43,13 @@ debug/
 data/
 run/
 
+# Python cache
+__pycache__/
+
+# Smoke test artifacts (cluster run dirs + copied logs)
+smoke_n64/
+/step_log.txt
+
 # MacOSX
 .DS_Store
 

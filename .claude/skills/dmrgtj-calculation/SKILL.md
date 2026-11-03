@@ -20,6 +20,7 @@ description: DMRGtJModel 项目计算工作流指南：在 honeycomb/平方晶�
 ## 2. 环境与同步
 
 - 本机 Windows 只有源码，**编译与计算都在 SUSTech 集群**（Intel oneAPI + MKL + MPI，build 目录 `/share/home/zhangkun/DMRGtJModel/build`）。
+- 集群登录 shell 需 `source ${HOME}/myenv.sh`（cmake/4.0.0-rc1、gcc/12.1.0、jq/1.7.1 模块 + oneAPI setvars；已加载时 setvars 返回 rc=3 可忽略）。构建注意：显式 `-DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++`（系统 cc 8.3.1 与 libhptt.a ABI 不匹配）、不启用 OpenMP（qlten 头文件 pragma 在 GNU 下报错，张量串行只影响性能）。细节见仓库 CLAUDE.md。
 - 同步方式：本地改代码/脚本后 `git commit` + `git push`，集群上 `git pull`，然后 `sbatch`。
 - 每个计算放在独立的 run 目录（`rundir=$(pwd)`）：内含自己的 `params.json`、`mps/`、`mpo/`、`.temp/` 与 slurm 日志。SLURM 脚本按当前目录工作，所以必须在 run 目录内提交。
 - 参数文件格式见 `docs/parameters.md`；`params.json` 在仓库根是当前活跃示例，各 run 目录用自己的副本。
@@ -76,7 +77,14 @@ description: DMRGtJModel 项目计算工作流指南：在 honeycomb/平方晶�
 
 需要新增/修改算法接口、排查库行为（如 `TwoSiteFiniteVMPS`、`FiniteDMRG`、MPOGenerator）时，先读 `C:\Users\ZhangKun\Desktop\UltraDMRG` 的 CLAUDE.md（分层架构）与 `ultradmrg-algorithm-dev` skill（算法开发模式：单进程 API、MPI master/slave 三文件模式、测试注册规范）。**查阅范围控制**：普通参数配置、提交计算、测量、数据交接等流程问题，优先查阅本仓库 CLAUDE.md、docs/ 与 SLURM 脚本，不查库源码；只有确实涉及内部接口或算法实现、且现有文档与代码证据不足以判断时，才扩大到 UltraDMRG 源码检查。
 
-## 9. 常见坑
+## 9. 复值协议（任务 C：d+id 探索）
+
+- **构建**：默认构建（不加 `-DRealCode=ON`）即复值路径（`USE_COMPLEX`）；测量输出值自动变 `[re, im]`，后处理解析器已兼容。
+- **关键坑**：复值二进制读不了实值 MPS（`Error reading file: mps/mps_ten0.qlten`，元素类型不匹配），反之亦然。复值续跑只能从复值链自己产出的 `mps/` 开始；real/complex 各自用独立的 build 与 run 目录。
+- **先验收再谈物理**：在实值态上确认复值链路（验收 1：重现实值结果；验收 2：实值态保持实、虚部≈0）。N=64 冒烟 `scripts/smoke_n64_run.sh` + `scripts/smoke_n64_verify.sh`（2026-11-03 已通过）。验收工具 `tools/verify_complex_reproduces_real.py`：scs 模式数值硬判据；generic 模式（measure1 目录）re-diff 仅报告（两条独立收敛链口径，受 D 截断误差 ~1e-4 限制），硬判据为虚部≈0 与 E0 一致。逐行差异排查用 `tools/diag_measure1_diff.py`。
+- **边界**：复值能跑 ≠ 手性态已被选择 ≠ d+id 证据；手性态选择手段（复值随机初态/相位扭曲初态/phi 插值）与完整协议见 `docs/COMPLEX_RUN_PROTOCOL.md`。
+
+## 10. 常见坑
 
 - **`.temp` 两条规则**：同一物理参数下可以删（不影响加大 D 续跑和测量，程序自动重建）；换物理参数绝热演化前必须删。删前确认目标是 `.temp`，勿误删 `mps/` 或测量结果。
 - **换系统大小时**：`mps/` 张量数与新 N 不一致会自动重新初始化——旧 MPS 会被覆盖（`Dump` 覆盖写），需要保留旧结果就先拷贝 `mps/`。

@@ -27,6 +27,8 @@ Key CMake options (defaults in parentheses):
 
 This Windows working copy has no local `build/`; compilation happens on the SUSTech cluster (`/share/home/zhangkun/DMRGtJModel/build`, Intel oneAPI + MKL + MPI, see the repo-root `.sh` SLURM scripts for the environment setup).
 
+Cluster build notes (validated by the N=64 smoke, 2026-11-03): login shells must first `source ${HOME}/myenv.sh` (cmake/4.0.0-rc1 + gcc/12.1.0 + jq/1.7.1 modules + oneAPI `setvars.sh`; `setvars.sh` returning rc=3 when already sourced is harmless). Configure with `-DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++` — the system cc (8.3.1) mismatches the ABI of the newer `libhptt.a` (link fails with undefined `std::__throw_bad_array_new_length`). Do NOT enable OpenMP under GNU: qlten header `#pragma omp` clauses fail to compile; tensor ops then run serially (performance only, correctness unaffected). `plot_lattice` does not link under GNU (`std::filesystem` needs `-lstdc++fs`; pre-existing issue). The cluster `build/` tree is a complex build (`RealCode:BOOL=OFF`, built 2026-06-18).
+
 ## Binaries
 
 Built by `add_executable` in `CMakeLists.txt` (the authoritative source → source-file mapping):
@@ -86,4 +88,6 @@ Main-driver pattern (all `src/*.cpp` `main`s): `MPI_Init` → `CaseParams(params
 - Honeycomb geometries ignore `phi` (warning printed, `phi` forced to 0).
 - `phi != 0` on square geometries requires `RealCode=OFF` (complex); `dmrg`'s initial-state code also assumes complex for the winding terms.
 - `vmps*` binaries hard-exit if `./mpo` is missing.
+- Complex-built binaries cannot read real MPS files and vice versa (`Error reading file: mps/mps_ten0.qlten` — element-type mismatch). Pair each binary with MPS produced by the same build kind.
+- Task-C complex-run acceptance: `docs/COMPLEX_RUN_PROTOCOL.md`; N=64 smoke via `scripts/smoke_n64_run.sh` + `smoke_n64_verify.sh` and `tools/verify_complex_reproduces_real.py` (scs mode = full numeric gate; generic mode = re-diff reported only, hard gates are |Im|≈0 and E0 agreement; row-diff diagnosis with `tools/diag_measure1_diff.py`). Passed 2026-11-03, record in `docs/PROTOCOL_MEASURE_SC_LRO_V1.md`.
 - `params.json` at repo root is the currently active config (honeycomb 12×4); `src/params.json` is an upstream example. SLURM scripts in the repo root (`submit_dmrg_zk.sh`, `measure_corr.sh`, `measure_super_corr.sh`) contain user-specific paths (`/share/home/zhangkun/...`) and scan hardcoded site/bond lists marked "只需要改这里" (only edit here).
