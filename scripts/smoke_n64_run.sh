@@ -119,13 +119,15 @@ N_SITES=$(( 2 * LY * LX ))
 # ---------- 构建（独立目录，fail-closed 创建） ----------
 # 只构建冒烟所需目标：plot_lattice 在 GCC 8 下因 std::filesystem 缺少
 # -lstdc++fs 链接失败（与本任务无关的既有问题），跳过全目标构建。
-# 显式传 -fopenmp（GNU 编译器下 OpenMP 编译标志可能未随链接库传播）。
+# 注意：不传 -fopenmp——GNU 8 拒绝 qlten 头文件中的 OpenMP shared 子句写法
+# （const 变量 predetermined shared 报错），pragma 被忽略即张量运算串行，
+# 只影响性能不影响正确性（生产用 Intel icpc 编译，等价性待后续评估）。
 BUILD(){ # BUILD <rel_dir> [cmake flags...]
   local dir=$1; shift
   ensure_new_dir "${RUN_DIR}/${dir}"
   cd "${RUN_DIR}/${dir}"
   cmake "${REPO_ROOT}" -DCMAKE_PREFIX_PATH="${PREFIX}" \
-    -DCMAKE_CXX_FLAGS=-fopenmp "${HPTT_FLAGS[@]}" "$@" \
+    "${HPTT_FLAGS[@]}" "$@" \
     | tee cmake.log
   make -j8 dmrg measure1 measureSC_fix_ref_ext | tee make.log
 }

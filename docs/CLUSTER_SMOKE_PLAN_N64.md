@@ -72,8 +72,11 @@ verify 无 `--dependency` 前置（手动顺序提交）；若 run 未完成/失
   冒烟作业为准；
 - 冒烟只构建所需目标（dmrg/measure1/measureSC_fix_ref_ext）：`plot_lattice`
   在 GCC 8 下因 `std::filesystem` 缺少 `-lstdc++fs` 链接失败（与本任务
-  无关的既有问题，待单独修复）；集群实际编译器为系统 GNU 8.3.1
-  （`-fopenmp` 已显式传入，生产 Intel 编译器的等价性待后续评估）；
+  无关的既有问题，待单独修复）；
+- 集群实际编译器为系统 GNU 8.3.1；**不启用 OpenMP**（GNU 8 拒绝 qlten
+  头文件的 OpenMP shared 子句写法），张量运算串行——只影响性能不影响
+  正确性，N=64 冒烟可接受；生产协议若要复现归档数据的 Intel 编译器口径
+  （含 OpenMP），需单独评估；
 - `dmrg.cpp` 按 mps 文件数复用 MPS（不校验扇区）——本方案通过唯一运行目录
   与 fail-closed 目录创建规避跨运行复用；同一次运行内 D100→D300 复用为
   有意设计；
