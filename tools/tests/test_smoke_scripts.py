@@ -160,8 +160,15 @@ def test_chain_order():
     real300 = text.index('RUN_DMRG "${RUN_DIR}/run_real" "${RUN_DIR}/build_real/dmrg" --D=300')
     cplx100 = text.index('RUN_DMRG "${RUN_DIR}/run_complex" "${RUN_DIR}/build_complex/dmrg" --D=100')
     cplx300 = text.index('RUN_DMRG "${RUN_DIR}/run_complex" "${RUN_DIR}/build_complex/dmrg" --D=300')
-    assert real100 < real300 and cplx100 < cplx300
-    print("  [PASS] 7. D=100 -> D=300 链式复用顺序保持（real/complex）")
+    # diff（旧/新二进制）必须在 complex 链之后：旧 build 为 complex 编译
+    # （RealCode=OFF），只能读 complex MPS，diff 须与 complex 对配对。
+    diff_dir = text.index("run_old_diff")
+    assert real100 < real300 < cplx100 < cplx300 < diff_dir
+    assert 'cp -r "${RUN_DIR}/run_complex/mps"' in text
+    diff_region = text[diff_dir:]
+    assert '${RUN_DIR}/build_complex/measureSC_fix_ref_ext' in diff_region
+    assert '${RUN_DIR}/build_real/measureSC_fix_ref_ext' not in diff_region
+    print("  [PASS] 7. 链顺序与 diff 配对（real -> complex -> diff，complex 对）")
 
 
 def test_helpers():

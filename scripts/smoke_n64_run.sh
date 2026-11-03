@@ -10,7 +10,8 @@
 #   - 测量前检查 CWD 无历史残留（params.json 除外）；测量后按
 #     smoke_expected_files.py（镜像 C++ 枚举的期望文件集）核对缺失/多余，
 #     再逐文件移动，无 mv -f、无宽泛通配符收集、无错误吞掉。
-#   - 旧 build 只读不写（兼容性 diff 基准）；diff 副本目录创建前必须不存在。
+#   - 旧 build 只读不写（兼容性 diff 基准；旧 build 为 complex 编译，
+#     其 diff 与 complex 链的 MPS/二进制配对）；diff 副本目录创建前必须不存在。
 #   - 全部步骤成功后才写入 RUN_OK 标记（verify 前置检查依赖）。
 # 用法：sbatch scripts/smoke_n64_run.sh
 #       成功后把脚本打印的 RUN_DIR 作为参数交给 smoke_n64_verify.sh。
@@ -202,13 +203,23 @@ MEAS1 "${RUN_DIR}/run_real" "${RUN_DIR}/build_real/measure1" D300
 MEAS_SCS "${RUN_DIR}/run_real" "${RUN_DIR}/build_real/measureSC_fix_ref_ext" \
         0_1_D300 --refbond="${SINGLE_REF}"
 
-echo "==== step 4: 旧二进制 vs 新二进制 单参考键字节级 diff ===="
+echo "==== step 4: complex dmrg D=100,300 + 测量（实初态，虚部应≈0）===="
+RUN_DMRG "${RUN_DIR}/run_complex" "${RUN_DIR}/build_complex/dmrg" --D=100
+RUN_DMRG "${RUN_DIR}/run_complex" "${RUN_DIR}/build_complex/dmrg" --D=300
+MEAS1 "${RUN_DIR}/run_complex" "${RUN_DIR}/build_complex/measure1" D300
+MEAS_SCS "${RUN_DIR}/run_complex" "${RUN_DIR}/build_complex/measureSC_fix_ref_ext" \
+        0_1_D300 --refbond="${SINGLE_REF}"
+
+echo "==== step 5: 旧二进制 vs 新二进制 单参考键字节级 diff（complex 对）===="
+# 旧 build 为 complex 编译（CMakeCache RealCode=OFF，2026-06-18），只能读
+# complex MPS；故 diff 在 complex 链完成后执行，旧/新均为 complex 二进制，
+# 12 文件输出同为 [re,im] 格式，字节级比较有效。
 for d in run_old_diff run_new_diff; do
   ensure_new_dir "${RUN_DIR}/${d}"
 done
 for d in run_old_diff run_new_diff; do
-  cp -r "${RUN_DIR}/run_real/mps" "${RUN_DIR}/${d}/mps"
-  SRC_CNT=$(ls "${RUN_DIR}/run_real/mps"/mps_ten*.qlten 2>/dev/null | wc -l)
+  cp -r "${RUN_DIR}/run_complex/mps" "${RUN_DIR}/${d}/mps"
+  SRC_CNT=$(ls "${RUN_DIR}/run_complex/mps"/mps_ten*.qlten 2>/dev/null | wc -l)
   DST_CNT=$(ls "${RUN_DIR}/${d}/mps"/mps_ten*.qlten 2>/dev/null | wc -l)
   { [ "${SRC_CNT}" -ge "${N_SITES}" ] && [ "${DST_CNT}" -eq "${SRC_CNT}" ]; } \
     || die "mps 复制不完整：${d}（src=${SRC_CNT} dst=${DST_CNT} N=${N_SITES}）"
@@ -216,7 +227,7 @@ done
 (cd "${RUN_DIR}/run_old_diff" && cp "${PARAMS_SRC}" params.json \
   && mpirun -n ${NTASKS} "${OLD_BUILD}/measureSC_fix_ref_ext" params.json --refbond="${SINGLE_REF}")
 (cd "${RUN_DIR}/run_new_diff" && cp "${PARAMS_SRC}" params.json \
-  && mpirun -n ${NTASKS} "${RUN_DIR}/build_real/measureSC_fix_ref_ext" params.json --refbond="${SINGLE_REF}")
+  && mpirun -n ${NTASKS} "${RUN_DIR}/build_complex/measureSC_fix_ref_ext" params.json --refbond="${SINGLE_REF}")
 DIFF_CNT=0
 for f in scsA{a,b,c,d} scsB{a,b,c,d} scsC{a,b,c,d}; do
   fn="${f}_fix_refbond_$(echo "${SINGLE_REF}" | tr ',' '_').json"
@@ -227,13 +238,6 @@ for f in scsA{a,b,c,d} scsB{a,b,c,d} scsC{a,b,c,d}; do
 done
 if [ ${DIFF_CNT} -ne 0 ]; then die "${DIFF_CNT} 个文件与旧版不一致"; fi
 echo "old-vs-new 12 文件 diff: 全部一致"
-
-echo "==== step 5: complex dmrg D=100,300 + 测量（实初态，虚部应≈0）===="
-RUN_DMRG "${RUN_DIR}/run_complex" "${RUN_DIR}/build_complex/dmrg" --D=100
-RUN_DMRG "${RUN_DIR}/run_complex" "${RUN_DIR}/build_complex/dmrg" --D=300
-MEAS1 "${RUN_DIR}/run_complex" "${RUN_DIR}/build_complex/measure1" D300
-MEAS_SCS "${RUN_DIR}/run_complex" "${RUN_DIR}/build_complex/measureSC_fix_ref_ext" \
-        0_1_D300 --refbond="${SINGLE_REF}"
 
 echo "==== step 6: 完成标记（最后写入，失败路径不会产生）===="
 touch "${RUN_DIR}/RUN_OK"

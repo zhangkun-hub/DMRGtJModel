@@ -21,7 +21,9 @@
   方向+通道 a-d，单参考键）核对缺失/多余，再逐文件移动（无 `mv -f`、
   无宽泛通配符、无错误吞掉）。
 - **旧二进制保护**：旧 build 目录只读（兼容性 diff 基准），新构建目录与其
-  完全分离。
+  完全分离。旧 build 为 complex 编译（2026-06-18 构建，CMakeCache
+  `RealCode=OFF`），diff 与 complex 链的 MPS/二进制配对（real MPS 会被旧
+  二进制以 `Error reading file` 拒绝）。
 - **完成标记**：run 全部成功后才写 `RUN_OK`；verify 前置检查 RUN_OK、
   环境记录、配置快照一致性（`cmp`）、必要结果目录与日志，任一缺失即 FAIL。
 - **配置同源**：参考键只存在于 `smoke_n64_config.json`，run 与 verify 均经
@@ -46,9 +48,9 @@ verify 无 `--dependency` 前置（手动顺序提交）；若 run 未完成/失
 | 1 | 环境核对 | `source ${HOME}/myenv.sh`（**与用户日常环境同源**：cmake/4.0.0-rc1、gcc/12.1.0、jq/1.7.1 模块 + oneAPI setvars）、`OLD_BUILD/CMakeCache.txt` | `smoke_env_record.txt`（run_dir、repo HEAD、module 列表、icpc/icpx 与 cmake 版本、依赖路径、hptt 缓存条目）；依赖前缀必须同时含 `qlten/` 与 `qlmps/` 目录 | myenv.sh 缺失、cmake/mpirun/python3 不可用、缓存条目缺失或依赖目录缺失 → 明确 FAIL（fail-fast） | 无 |
 | 2 | real build（C1 已修复） | 仓库源码 + 前缀 + `-DRealCode=ON` | `build_real/`、cmake/make 日志 | 编译错误 → 退出 1（CMakeLists 失效 target 已移除，全部 target 源文件存在性经静态测试核对） | ~10 min |
 | 3 | complex build | 同上，默认选项（`USE_COMPLEX`） | `build_complex/` | 同上 | ~10 min |
-| 4 | 旧/新二进制单参考键字节级 diff | 同一 `run_real/mps`（D=300 后）复制到 run_old_diff/run_new_diff（复制前必须不存在，复制后数量核对）；旧/新二进制同参测 `--refbond=0,1` | 两份 12 文件 | 任一 `scs{X}{a..d}_fix_refbond_0_1.json` `cmp` 不一致 → 退出 1 | ~1 min |
-| 5 | real dmrg 链 D=100→测量→D=300→测量 | `run_real/` | `dmrg_100/300.log`；`measure1_D{100,300}/`、`measure_scs_0_1_D{100,300}/`（各 12 主文件） | 任一步骤非零退出；测量后期望文件集核对不过 → 退出 | 4×7 核 ~5 min/段 |
-| 6 | complex dmrg 链 + 测量（实初态，虚部应≈0） | `run_complex/` | 同第 5 步复值版（值 `[re, im]`） | 同上 | 同第 5 步 |
+| 4 | real dmrg 链 D=100→测量→D=300→测量 | `run_real/` | `dmrg_100/300.log`；`measure1_D{100,300}/`、`measure_scs_0_1_D{100,300}/`（各 12 主文件） | 任一步骤非零退出；测量后期望文件集核对不过 → 退出 | 4×7 核 ~5 min/段 |
+| 5 | complex dmrg 链 + 测量（实初态，虚部应≈0） | `run_complex/` | 同第 4 步复值版（值 `[re, im]`） | 同上 | 同第 4 步 |
+| 6 | 旧/新二进制单参考键字节级 diff（complex 对） | 同一 `run_complex/mps`（D=300 后）复制到 run_old_diff/run_new_diff（复制前必须不存在，复制后数量核对）；旧二进制（complex 编译，RealCode=OFF）与新 complex 二进制同参测 `--refbond=0,1` | 两份 12 文件 | 任一 `scs{X}{a..d}_fix_refbond_0_1.json` `cmp` 不一致 → 退出 1 | ~1 min |
 | 7 | 复值重现实值（验收 1/2） | v1：scs 单参考键目录对 + 两日志（独立 manifest）；v2：measure1 目录对（generic 模式） | `verify_<时间>/verify_{scs_0_1,measure1}.json` | 完整性任一失败或数值超容差（atol=rtol=1e-8 组合判据，实际容差入报告）→ FAIL；若仅数值超差，检查 scaled 值再定论 | 单核 <1 min |
 
 ## 全部通过后的判定
