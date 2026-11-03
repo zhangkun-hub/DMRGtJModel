@@ -78,6 +78,7 @@ ENV_REC="${RUN_DIR}/smoke_env_record.txt"
   echo "repo_head=$(git -C "${REPO_ROOT}" rev-parse HEAD 2>/dev/null || echo UNKNOWN)"
   module list 2>&1
   icpc --version 2>&1 || icpx --version 2>&1 || true
+  echo "cxx=$(c++ --version 2>&1 | head -1 || true)"
   echo "cmake_version=$(cmake --version 2>&1 | head -1 || true)"
 } > "${ENV_REC}"
 
@@ -98,13 +99,14 @@ fi
 echo "CMAKE_PREFIX_PATH=${PREFIX}" | tee -a "${ENV_REC}" >/dev/null
 
 # hptt 路径同样从旧缓存提取（新构建目录无缓存，需显式传入 cmake）
+# （过滤 -ADVANCED 等内部缓存变量，只取真实路径条目）
 HPTT_FLAGS=()
 while IFS= read -r line; do
   key=${line%%=*}
   key=${key%%:*}
   val=${line#*=}
   HPTT_FLAGS+=("-D${key}=${val}")
-done < <(grep -E "^hptt_" "${CACHE_FILE}" || true)
+done < <(grep -E "^hptt_" "${CACHE_FILE}" | grep -v -- "-ADVANCED" || true)
 echo "hptt_cache_entries=${HPTT_FLAGS[*]:-（无）}" | tee -a "${ENV_REC}" >/dev/null
 
 # ---------- 配置（唯一事实来源：smoke_n64_config.json + params.json） ----------
@@ -115,13 +117,17 @@ SINGLE_REF=$(cfg_get "${CONFIG_SRC}" single_refbond)
 N_SITES=$(( 2 * LY * LX ))
 
 # ---------- 构建（独立目录，fail-closed 创建） ----------
+# 只构建冒烟所需目标：plot_lattice 在 GCC 8 下因 std::filesystem 缺少
+# -lstdc++fs 链接失败（与本任务无关的既有问题），跳过全目标构建。
+# 显式传 -fopenmp（GNU 编译器下 OpenMP 编译标志可能未随链接库传播）。
 BUILD(){ # BUILD <rel_dir> [cmake flags...]
   local dir=$1; shift
   ensure_new_dir "${RUN_DIR}/${dir}"
   cd "${RUN_DIR}/${dir}"
-  cmake "${REPO_ROOT}" -DCMAKE_PREFIX_PATH="${PREFIX}" "${HPTT_FLAGS[@]}" "$@" \
+  cmake "${REPO_ROOT}" -DCMAKE_PREFIX_PATH="${PREFIX}" \
+    -DCMAKE_CXX_FLAGS=-fopenmp "${HPTT_FLAGS[@]}" "$@" \
     | tee cmake.log
-  make -j8 | tee make.log
+  make -j8 dmrg measure1 measureSC_fix_ref_ext | tee make.log
 }
 
 echo "==== step 1: real build 编译 ===="

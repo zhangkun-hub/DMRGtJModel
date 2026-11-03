@@ -70,6 +70,10 @@ verify 无 `--dependency` 前置（手动顺序提交）；若 run 未完成/失
 - 集群依赖真实环境项（module/编译器/qlten/qlmps 路径与版本、编译通过性、
   旧二进制 diff、DMRG 数值、端到端验证）在本地均为 **NOT_VERIFIED**，以
   冒烟作业为准；
+- 冒烟只构建所需目标（dmrg/measure1/measureSC_fix_ref_ext）：`plot_lattice`
+  在 GCC 8 下因 `std::filesystem` 缺少 `-lstdc++fs` 链接失败（与本任务
+  无关的既有问题，待单独修复）；集群实际编译器为系统 GNU 8.3.1
+  （`-fopenmp` 已显式传入，生产 Intel 编译器的等价性待后续评估）；
 - `dmrg.cpp` 按 mps 文件数复用 MPS（不校验扇区）——本方案通过唯一运行目录
   与 fail-closed 目录创建规避跨运行复用；同一次运行内 D100→D300 复用为
   有意设计；
