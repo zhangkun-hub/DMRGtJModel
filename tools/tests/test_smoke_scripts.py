@@ -292,6 +292,21 @@ def test_config_change_propagates():
     print("  [PASS] 16. 配置修改后读取新值（无旧硬编码）")
 
 
+def test_env_switch():
+    text = read(RUN_SH)
+    assert "SMOKE_ENV=${SMOKE_ENV:-default}" in text
+    # intel2022 分支：归档生产口径（Intel 2022.2.0 + icc/icpc）
+    assert "/share/intel/2022.2.0" in text
+    assert "CMAKE_CC=icc" in text and "CMAKE_CXX=icpc" in text
+    # BUILD 编译器已参数化（防 gcc/g++ 硬编码回归）
+    assert '-DCMAKE_C_COMPILER="${CMAKE_CC}"' in text
+    assert '-DCMAKE_CXX_COMPILER="${CMAKE_CXX}"' in text
+    assert "-DCMAKE_C_COMPILER=gcc" not in text
+    # default 分支仍走 myenv.sh + gcc 版本校验
+    assert "CMAKE_CC=gcc" in text and "CMAKE_CXX=g++" in text
+    print("  [PASS] 18. SMOKE_ENV 口径开关（default GNU / intel2022 icpc）")
+
+
 def test_run_dir_exclusive():
     # 17. 同一 RUN_ID 二次创建失败（fail-closed 互斥）
     tree = make_fake_tree()
@@ -317,6 +332,7 @@ def main():
     test_no_mv_f()
     test_verify_preflight()
     test_config_change_propagates()
+    test_env_switch()
     test_run_dir_exclusive()
     subprocess.run([sys.executable,
                     os.path.join(HERE, "test_cmake_sources.py")], check=True)

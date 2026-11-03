@@ -54,34 +54,72 @@ cp "${CONFIG_SRC}" "${RUN_DIR}/smoke_config_used.json"
 
 NTASKS=${SLURM_NTASKS:-4}
 
-# ---------- 环境（与用户 ${HOME}/myenv.sh 同源，避免脚本内模块名过期） ----------
-module purge 2>/dev/null || true
-if [ -f "${HOME}/myenv.sh" ]; then
-  # setvars.sh 在环境已由登录 shell 继承时会"跳过重跑"并可能返回非零；
-  # 容忍其返回码，改由下面的 command -v 硬校验兜底（环境真缺失会明确 FAIL）。
-  set +e
-  source "${HOME}/myenv.sh"
-  MYENV_RC=$?
-  set -e
-  echo "note: source ${HOME}/myenv.sh rc=${MYENV_RC}（rc!=0 但下方环境校验通过时可忽略）"
-else
-  die "缺少 ${HOME}/myenv.sh（cmake/gcc/jq 模块 + oneAPI setvars 的集群环境初始化脚本）"
-fi
-command -v cmake >/dev/null 2>&1 || die "cmake 不可用（检查 ${HOME}/myenv.sh）"
-command -v mpirun >/dev/null 2>&1 || die "mpirun 不可用（检查 oneAPI setvars 是否生效）"
-command -v "${PYTHON_BIN}" >/dev/null 2>&1 \
-  || die "python3 不可用（请在 ${HOME}/myenv.sh 中补充 python 模块或确认系统 python3）"
-# libhptt.a 是用新版 GCC 编译的（引用 GCC 11+ libstdc++ 符号），必须用
-# myenv.sh 的 gcc 模块（12.1.0）而非系统 cc（8.3.1）构建，否则链接失败。
-GCC_VER_LINE=$(gcc --version 2>/dev/null | head -1 || true)
-GCC_MAJOR=$(echo "${GCC_VER_LINE}" | grep -oE "[0-9]+" | head -1 || true)
-[ -n "${GCC_MAJOR}" ] && [ "${GCC_MAJOR}" -ge 11 ] \
-  || die "gcc 版本过旧或不可用（${GCC_VER_LINE:-无}）：需要 >= 11（libhptt.a 工具链匹配）。请确认 myenv.sh 的 gcc/12.1.0 模块已生效"
+# ---------- 环境（SMOKE_ENV=default|intel2022，两种口径） ----------
+# default：与用户 ${HOME}/myenv.sh 同源（cmake/gcc/jq 模块 + oneAPI 2025
+#   setvars），构建用 GNU gcc/g++ 12.1.0，张量运算串行（CMakeLists 在
+#   GNU+MKL 下自动关闭 OpenMP）。
+# intel2022：归档生产口径（submit_dmrg_zk.sh 同源：GCC 12.1.0 PATH +
+#   Intel 2022.2.0 compiler/MKL/MPI vars.sh + anaconda + jq 模块），
+#   构建用 icc/icpc，OpenMP 启用（CMakeLists 在 Intel 编译器下自动链接）。
+#   用于生产复跑步骤 0 的复值链路 Intel 口径验证。
+SMOKE_ENV=${SMOKE_ENV:-default}
+case "${SMOKE_ENV}" in
+  default)
+    module purge 2>/dev/null || true
+    if [ -f "${HOME}/myenv.sh" ]; then
+      # setvars.sh 在环境已由登录 shell 继承时会"跳过重跑"并可能返回非零；
+      # 容忍其返回码，改由下面的 command -v 硬校验兜底（环境真缺失会明确 FAIL）。
+      set +e
+      source "${HOME}/myenv.sh"
+      MYENV_RC=$?
+      set -e
+      echo "note: source ${HOME}/myenv.sh rc=${MYENV_RC}（rc!=0 但下方环境校验通过时可忽略）"
+    else
+      die "缺少 ${HOME}/myenv.sh（cmake/gcc/jq 模块 + oneAPI setvars 的集群环境初始化脚本）"
+    fi
+    command -v cmake >/dev/null 2>&1 || die "cmake 不可用（检查 ${HOME}/myenv.sh）"
+    command -v mpirun >/dev/null 2>&1 || die "mpirun 不可用（检查 oneAPI setvars 是否生效）"
+    command -v "${PYTHON_BIN}" >/dev/null 2>&1 \
+      || die "python3 不可用（请在 ${HOME}/myenv.sh 中补充 python 模块或确认系统 python3）"
+    # libhptt.a 是用新版 GCC 编译的（引用 GCC 11+ libstdc++ 符号），必须用
+    # myenv.sh 的 gcc 模块（12.1.0）而非系统 cc（8.3.1）构建，否则链接失败。
+    GCC_VER_LINE=$(gcc --version 2>/dev/null | head -1 || true)
+    GCC_MAJOR=$(echo "${GCC_VER_LINE}" | grep -oE "[0-9]+" | head -1 || true)
+    [ -n "${GCC_MAJOR}" ] && [ "${GCC_MAJOR}" -ge 11 ] \
+      || die "gcc 版本过旧或不可用（${GCC_VER_LINE:-无}）：需要 >= 11（libhptt.a 工具链匹配）。请确认 myenv.sh 的 gcc/12.1.0 模块已生效"
+    CMAKE_CC=gcc
+    CMAKE_CXX=g++
+    ;;
+  intel2022)
+    # 与 submit_dmrg_zk.sh 环境段同源（归档生产口径）。
+    # vars.sh 会前置覆盖 PATH/LD_LIBRARY_PATH；不做 module purge 之外的
+    # oneAPI 2025 变量清理，若两种 setvars 残留冲突会在步骤 0 暴露并修复。
+    module purge 2>/dev/null || true
+    export PATH=/share/software/gcc/12.1.0/bin:$PATH
+    export LD_LIBRARY_PATH=/share/software/gcc/12.1.0/lib64:$LD_LIBRARY_PATH
+    source /share/intel/2022.2.0/compiler/latest/env/vars.sh
+    source /share/intel/2022.2.0/mkl/latest/env/vars.sh
+    source /share/intel/2022.2.0/mpi/latest/env/vars.sh
+    source /share/software/anaconda3/bin/activate
+    module use /share/software/modulefiles 2>/dev/null || true
+    module load jq 2>/dev/null || true
+    command -v icpc >/dev/null 2>&1 || die "icpc 不可用（检查 Intel 2022.2.0 compiler vars.sh）"
+    command -v mpirun >/dev/null 2>&1 || die "mpirun 不可用（检查 Intel 2022.2.0 MPI vars.sh）"
+    command -v "${PYTHON_BIN}" >/dev/null 2>&1 \
+      || die "python3 不可用（检查 anaconda 激活是否生效）"
+    CMAKE_CC=icc
+    CMAKE_CXX=icpc
+    ;;
+  *)
+    die "未知 SMOKE_ENV=${SMOKE_ENV}（支持 default|intel2022）"
+    ;;
+esac
 
 # ---------- step 0: 环境记录与依赖验证（先读后记，失败信息明确） ----------
 ENV_REC="${RUN_DIR}/smoke_env_record.txt"
 {
   echo "run_dir=${RUN_DIR}"
+  echo "smoke_env=${SMOKE_ENV}"
   echo "repo_head=$(git -C "${REPO_ROOT}" rev-parse HEAD 2>/dev/null || echo UNKNOWN)"
   module list 2>&1
   icpc --version 2>&1 || icpx --version 2>&1 || true
@@ -133,7 +171,7 @@ BUILD(){ # BUILD <rel_dir> [cmake flags...]
   ensure_new_dir "${RUN_DIR}/${dir}"
   cd "${RUN_DIR}/${dir}"
   cmake "${REPO_ROOT}" -DCMAKE_PREFIX_PATH="${PREFIX}" \
-    -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ \
+    -DCMAKE_C_COMPILER="${CMAKE_CC}" -DCMAKE_CXX_COMPILER="${CMAKE_CXX}" \
     "${HPTT_FLAGS[@]}" "$@" \
     | tee cmake.log
   make -j8 dmrg measure1 measureSC_fix_ref_ext | tee make.log

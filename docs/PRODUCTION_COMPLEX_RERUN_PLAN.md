@@ -63,9 +63,14 @@
 ### 步骤 0：Intel 口径复值小验证（前置门槛）
 
 - 用 Intel 2022.2.0 环境（同 `submit_dmrg_zk.sh`）构建复值二进制
-  （无 `-DRealCode=ON`，含 OpenMP）；
-- 复跑 N=64 冒烟（run + verify 链路，编译环境替换为 Intel 口径；脚本
-  改动单独评审）；
+  （无 `-DRealCode=ON`，含 OpenMP——CMakeLists 在 Intel 编译器下自动
+  链接 OpenMP，GNU+MKL 下自动关闭，无需改动）；
+- 复跑 N=64 冒烟（run + verify 链路，编译环境替换为 Intel 口径）：
+  冒烟脚本已加 `SMOKE_ENV=default|intel2022` 口径开关（intel2022 =
+  GCC 12.1.0 + Intel 2022.2.0 + icc/icpc，`submit_dmrg_zk.sh` 同源；
+  环境记录写入 `smoke_env=` 行）；
+- 执行：`SMOKE_ENV=intel2022 sbatch scripts/smoke_n64_run.sh`，
+  成功后 `sbatch scripts/smoke_n64_verify.sh <RUN_DIR>`；
 - 通过标准：`ALL STEPS OK` + `SMOKE VERIFY ALL OK`；未通过则停止。
 
 ### 步骤 1：试点组合（N200 d2_25，低档）
