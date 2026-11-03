@@ -5,7 +5,7 @@ locally (cluster-only items are NOT_VERIFIED by design):
 
  1  bash -n on run/verify/common
  2  params/config JSON parse
- 3  refbond single source of truth (no hardcoded refbonds in scripts)
+ 3  refbond single source of truth (no hardcoded refbond in scripts)
  4  run/verify read the same config via the shared readers
  5  pre-existing run dir -> run FAILs (fail-closed)
  6  real/complex work dirs do not overlap
@@ -113,16 +113,16 @@ def test_refbond_single_source():
     for script in (RUN_SH, VERIFY_SH):
         text = read(script)
         assert "--refbond=0,1" not in text, f"{script}: hardcoded refbond"
-        assert "--refbond=0,1;0,4" not in text, f"{script}: hardcoded refbonds"
-        assert "${SINGLE_REF}" in text and "${MULTI_REF}" in text, \
-            f"{script}: refbonds not config-driven"
-        assert re.search(r"cfg_(get|list)\s+\"\$\{CONFIG_SRC\}\"", text), \
+        assert "${SINGLE_REF}" in text, f"{script}: refbond not config-driven"
+        assert "${MULTI_REF}" not in text and "reverse_channels" not in text, \
+            f"{script}: 残留 B 特性引用"
+        assert re.search(r"cfg_get\s+\"\$\{CONFIG_SRC\}\"", text), \
             f"{script}: not reading CONFIG_SRC"
     with open(CONFIG, encoding="utf-8") as f:
         cfg = json.load(f)
     assert cfg["single_refbond"] == "0,1"
-    assert cfg["refbonds"] == ["0,1", "0,4"]
-    print("  [PASS] 3. refbond 唯一事实来源（脚本无硬编码）")
+    assert "refbonds" not in cfg and "reverse_channels" not in cfg
+    print("  [PASS] 3. refbond 唯一事实来源（脚本无硬编码，无 B 残留）")
 
 
 def test_shared_readers():
@@ -130,12 +130,10 @@ def test_shared_readers():
         [BASH_EXE, "-c",
          f'source "{posix(COMMON_SH)}"; cfg_get "{posix(CONFIG)}" '
          f'single_refbond; '
-         f'cfg_list "{posix(CONFIG)}" refbonds | paste -sd";" -; '
-         f'cfg_get "{posix(CONFIG)}" reverse_channels; '
          f'px "{posix(PARAMS)}" Geometry'],
         capture_output=True, text=True, env=bash_env(), encoding="utf-8", errors="replace")
     lines = out.stdout.split()
-    assert lines == ["0,1", "0,1;0,4", "true", "HoneycombXC"], lines
+    assert lines == ["0,1", "HoneycombXC"], lines
     print("  [PASS] 4. run/verify 共用读取器输出正确")
 
 
@@ -205,31 +203,29 @@ def test_helpers():
 
 
 def test_expected_files():
-    # list 模式：单参考键 12 文件；双参考键+reverse 24 文件
+    # list 模式：单参考键 12 文件（3 方向 × 4 通道）
     out = subprocess.run(
         [sys.executable, EXPECTED_PY, "list", "HoneycombXC", "4", "8",
          "--refbond=0,1"], capture_output=True, text=True, check=True)
     assert len(out.stdout.split()) == 12, out.stdout
-    out = subprocess.run(
+    # 多参考键必须被拒绝（C-only）
+    proc = subprocess.run(
         [sys.executable, EXPECTED_PY, "list", "HoneycombXC", "4", "8",
-         "--refbond=0,1;0,4", "--reverse-channels"],
-        capture_output=True, text=True, check=True)
-    # 2 个参考键 × 3 方向 × 8 通道 = 48
-    assert len(out.stdout.split()) == 48, out.stdout
+         "--refbond=0,1;0,4"],
+        capture_output=True, text=True, encoding="utf-8", errors="replace")
+    assert proc.returncode != 0 and "单个参考键" in proc.stderr
     # check 模式：完整 -> 0；缺失 -> 非 0；多余 -> 非 0
     tmp = tempfile.mkdtemp(prefix="expected_")
     for f in out.stdout.split():
         with open(os.path.join(tmp, f), "w") as fh:
             fh.write("[]")
-    with open(os.path.join(tmp, "repeat_measurement_scatter.json"), "w") as fh:
-        fh.write("{}")
     subprocess.run(
         [sys.executable, EXPECTED_PY, "check", tmp, "HoneycombXC", "4", "8",
-         "--refbond=0,1;0,4", "--reverse-channels"], check=True)
+         "--refbond=0,1"], check=True)
     os.remove(os.path.join(tmp, "scsAa_fix_refbond_0_1.json"))
     proc = subprocess.run(
         [sys.executable, EXPECTED_PY, "check", tmp, "HoneycombXC", "4", "8",
-         "--refbond=0,1;0,4", "--reverse-channels"],
+         "--refbond=0,1"],
         capture_output=True, text=True, env=bash_env(), encoding="utf-8", errors="replace")
     assert proc.returncode != 0 and "缺失" in proc.stderr
     # 恢复缺失文件后再测"多余"（checker 先报缺失会掩盖多余，需独立场景）
@@ -239,7 +235,7 @@ def test_expected_files():
         fh.write("[]")
     proc = subprocess.run(
         [sys.executable, EXPECTED_PY, "check", tmp, "HoneycombXC", "4", "8",
-         "--refbond=0,1;0,4", "--reverse-channels"],
+         "--refbond=0,1"],
         capture_output=True, text=True, env=bash_env(), encoding="utf-8", errors="replace")
     assert proc.returncode != 0 and "多余" in proc.stderr
     print("  [PASS] 11/12. 期望文件集：缺失/多余均 FAIL，无覆盖")
@@ -276,13 +272,11 @@ def test_config_change_propagates():
     tree = make_fake_tree()
     cfg = os.path.join(tree, "scripts", "smoke_n64_config.json")
     with open(cfg, "w", encoding="utf-8") as f:
-        json.dump({"single_refbond": "2,3", "refbonds": ["2,3", "5,6"],
-                   "reverse_channels": False}, f)
+        json.dump({"single_refbond": "2,3"}, f)
     out = subprocess.run(
-        [BASH_EXE, "-c", f'source "{posix(COMMON_SH)}"; cfg_get "{posix(cfg)}" single_refbond; '
-                        f'cfg_list "{posix(cfg)}" refbonds | paste -sd";" -'],
+        [BASH_EXE, "-c", f'source "{posix(COMMON_SH)}"; cfg_get "{posix(cfg)}" single_refbond'],
         capture_output=True, text=True, env=bash_env(), encoding="utf-8", errors="replace")
-    assert out.stdout.split() == ["2,3", "2,3;5,6"], out.stdout
+    assert out.stdout.split() == ["2,3"], out.stdout
     # 两个脚本都从 CONFIG_SRC 经 cfg_get/cfg_list 取值（无旧值残留）
     for script in (RUN_SH, VERIFY_SH):
         text = read(script)

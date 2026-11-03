@@ -92,8 +92,6 @@ GEOM=$(px "${PARAMS_SRC}" Geometry)
 LY=$(px "${PARAMS_SRC}" Ly)
 LX=$(px "${PARAMS_SRC}" Lx)
 SINGLE_REF=$(cfg_get "${CONFIG_SRC}" single_refbond)
-MULTI_REF=$(cfg_list "${CONFIG_SRC}" refbonds | paste -sd ';' -)
-REVERSE=$(cfg_get "${CONFIG_SRC}" reverse_channels)
 N_SITES=$(( 2 * LY * LX ))
 
 # ---------- 构建（独立目录，fail-closed 创建） ----------
@@ -148,14 +146,13 @@ MEAS_SCS(){ # MEAS_SCS <workdir> <measureSC_binary> <tag> [args...]
   for f in "${EXPECTED[@]}"; do
     [ -f "$f" ] || die "测量输出缺失：${wd}/${f}"
   done
-  [ -f repeat_measurement_scatter.json ] || die "测量输出缺失：${wd}/repeat_measurement_scatter.json"
   local unexpected
   unexpected=$(comm -23 \
       <(ls scs*.json 2>/dev/null | sort) \
       <(printf '%s\n' "${EXPECTED[@]}" | sort) || true)
   [ -z "${unexpected}" ] || die "存在不在期望集合中的输出：${unexpected}"
   ensure_new_dir "measure_scs_${tag}"
-  mv "${EXPECTED[@]}" repeat_measurement_scatter.json "measure_scs_${tag}/"
+  mv "${EXPECTED[@]}" "measure_scs_${tag}/"
 }
 
 echo "==== step 3: real dmrg D=100 -> 测量 -> D=300（同目录有意续跑）-> 测量 ===="
@@ -167,13 +164,6 @@ RUN_DMRG "${RUN_DIR}/run_real" "${RUN_DIR}/build_real/dmrg" --D=300
 MEAS1 "${RUN_DIR}/run_real" "${RUN_DIR}/build_real/measure1" D300
 MEAS_SCS "${RUN_DIR}/run_real" "${RUN_DIR}/build_real/measureSC_fix_ref_ext" \
         0_1_D300 --refbond="${SINGLE_REF}"
-if [ "${REVERSE}" = "true" ]; then
-  MEAS_SCS "${RUN_DIR}/run_real" "${RUN_DIR}/build_real/measureSC_fix_ref_ext" \
-          two_rev --refbond="${MULTI_REF}" --reverse-channels
-else
-  MEAS_SCS "${RUN_DIR}/run_real" "${RUN_DIR}/build_real/measureSC_fix_ref_ext" \
-          two --refbond="${MULTI_REF}"
-fi
 
 echo "==== step 4: 旧二进制 vs 新二进制 单参考键字节级 diff ===="
 for d in run_old_diff run_new_diff; do
@@ -207,13 +197,6 @@ RUN_DMRG "${RUN_DIR}/run_complex" "${RUN_DIR}/build_complex/dmrg" --D=300
 MEAS1 "${RUN_DIR}/run_complex" "${RUN_DIR}/build_complex/measure1" D300
 MEAS_SCS "${RUN_DIR}/run_complex" "${RUN_DIR}/build_complex/measureSC_fix_ref_ext" \
         0_1_D300 --refbond="${SINGLE_REF}"
-if [ "${REVERSE}" = "true" ]; then
-  MEAS_SCS "${RUN_DIR}/run_complex" "${RUN_DIR}/build_complex/measureSC_fix_ref_ext" \
-          two_rev --refbond="${MULTI_REF}" --reverse-channels
-else
-  MEAS_SCS "${RUN_DIR}/run_complex" "${RUN_DIR}/build_complex/measureSC_fix_ref_ext" \
-          two --refbond="${MULTI_REF}"
-fi
 
 echo "==== step 6: 完成标记（最后写入，失败路径不会产生）===="
 touch "${RUN_DIR}/RUN_OK"

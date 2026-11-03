@@ -41,13 +41,13 @@ qlmps）。集群侧信息需回填（见下）。
 
 ## 测量版本与口径
 
-- 测量二进制：`measureSC_fix_ref_ext`（扩展版，本协议新增：
-  `--refbond=i1,j1;...`、`--all-refbonds`、`--reverse-channels`；
-  新增空间离散度/几何文件与 NOT_APPLICABLE 标记，见
-  `docs/MEASURE_ERROR_RECORDS.md`、`docs/PAIRING_MATRIX.md`）。
-- 主数据 12 文件 `scs{X}{a..d}_fix_refbond_{i}_{j}.json` 格式与口径
-  **与归档数据逐字节兼容**（B1.1 已核实的算符定义与弦因子约定未变）。
-- `measure1` 及其余测量二进制未改动。
+- 测量二进制：`measureSC_fix_ref_ext`（**单参考键基线语义**，
+  `--refbond=i,j`，与归档数据逐字节兼容——B1.1 已核实的算符定义与弦因子
+  约定未变）；`measure1` 及其余测量二进制未改动。
+- 复值协议（任务 C）仅引入构建配置变更（`RealCode OFF` = 默认复值路径）
+  与验收工具 `tools/verify_complex_reproduces_real.py`（单参考键 manifest
+  门控 + generic 双向完备性 + E0 比对），不改变测量输出口径。
+- 任务 A/B 实现已按用户决定还原（提交 `f268fac` 历史中保留，可恢复）。
 
 ## 源点 / refbond 选择
 
@@ -61,8 +61,8 @@ qlmps）。集群侧信息需回填（见下）。
 - 几何：`HoneycombXC`（当前 params.json：Lx=12, Ly=4 → N=96，NumHole=2）；
   t=0.3, t2=0.01, J=0.1, J2=0.01, phi=0（honeycomb 忽略 phi）。
 - 消费侧归档层级：`Data_N{200,400}/{t_J}/{doping}/{bond_dim}_measure_{...}`；
-  Data_Energy 保存 slurm 优化日志（TruncErr 档案经
-  `tools/extract_trunc_err.py` 抽取）。
+  Data_Energy 保存 slurm 优化日志（逐格点 TruncErr 在 DMRG stdout 中，
+  随日志归档）。
 
 ## 纪律
 

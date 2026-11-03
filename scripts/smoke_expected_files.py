@@ -1,21 +1,19 @@
-"""H2 helper: expected measurement output file set for a scs stage.
+"""H2 helper (C-only): expected measurement output file set for a scs stage.
 
-Mirrors GenerateTargetBonds + PerformMeasureSC of
-src/measureSC_fix_ref_extension.cpp (threshold filter t0 <= r1, A/B/C
-direction grouping, channels a-d plus e-h under --reverse-channels),
-independently of the measured data, using tools/honeycomb_geometry.py
-(which is verified against the C++ link construction).
+Mirrors GenerateTargetBonds + PerformMeasureSC of the baseline
+src/measureSC_fix_ref_extension.cpp (single reference bond, threshold
+filter t0 <= r1, A/B/C direction grouping, channels a-d), independently of
+the measured data, using tools/honeycomb_geometry.py (verified against the
+C++ link construction).
 
 Usage:
-    python smoke_expected_files.py list <geometry> <Ly> <Lx> \
-        --refbond=<i,j>[;<k,l>...] [--reverse-channels]
+    python smoke_expected_files.py list <geometry> <Ly> <Lx> --refbond=<i,j>
       prints the expected file names (one per line)
 
-    python smoke_expected_files.py check <dir> <geometry> <Ly> <Lx> \
-        --refbond=<i,j>[;<k,l>...] [--reverse-channels]
-      asserts <dir> contains exactly the expected scs files plus
-      repeat_measurement_scatter.json (no missing, no extra); prints the
-      expected file names and exits non-zero on any violation.
+    python smoke_expected_files.py check <dir> <geometry> <Ly> <Lx> --refbond=<i,j>
+      asserts <dir> contains exactly the expected scs files (no missing,
+      no extra); prints the expected file names and exits non-zero on any
+      violation.
 """
 import os
 import sys
@@ -28,7 +26,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                  "..", "tools"))
 import honeycomb_geometry as hg  # noqa: E402
 
-CHANNELS = "abcd" + "efgh"
+CHANNELS = "abcd"
 
 
 def parse_args(argv):
@@ -43,47 +41,46 @@ def parse_args(argv):
         geometry, ly, lx = argv[2], int(argv[3]), int(argv[4])
         rest = argv[5:]
     refbonds = []
-    reverse = False
     for arg in rest:
-        if arg == "--reverse-channels":
-            reverse = True
-        elif arg.startswith("--refbond="):
+        if arg.startswith("--refbond="):
             for pair in arg[len("--refbond="):].split(";"):
                 i, j = pair.split(",")
                 refbonds.append((int(i), int(j)))
         else:
             raise SystemExit(f"unexpected argument: {arg}")
-    return mode, check_dir, geometry, ly, lx, refbonds, reverse
+    if len(refbonds) != 1:
+        raise SystemExit("C-only 冒烟只支持单个参考键")
+    return mode, check_dir, geometry, ly, lx, refbonds[0]
 
 
-def expected_files(geometry, ly, lx, refbonds, reverse):
+def expected_files(geometry, ly, lx, refbond):
     all_bonds = hg.nn_bonds(geometry, ly, lx)
+    (r0, r1) = refbond
+    if tuple(sorted(refbond)) not in all_bonds:
+        raise SystemExit(f"{refbond} 不是 {geometry} {ly}x{lx} 的 NN 键")
+    threshold = max(r0, r1)
+    groups = {}
+    for b in all_bonds:
+        if b[0] <= threshold:  # C++ 测量过滤（API 约束）
+            continue
+        d = hg.classify_nn_bond(geometry, ly, lx, *b)
+        groups.setdefault(d, []).append(b)
     files = []
-    for (r0, r1) in refbonds:
-        if tuple(sorted((r0, r1))) not in all_bonds:
-            raise SystemExit(f"{(r0, r1)} 不是 {geometry} {ly}x{lx} 的 NN 键")
-        threshold = max(r0, r1)
-        groups = {}
-        for b in all_bonds:
-            if b[0] <= threshold:  # C++ 测量过滤（API 约束）
-                continue
-            d = hg.classify_nn_bond(geometry, ly, lx, *b)
-            groups.setdefault(d, []).append(b)
-        for d in sorted(groups):
-            for ch in CHANNELS[:8 if reverse else 4]:
-                files.append(f"scs{d}{ch}_fix_refbond_{r0}_{r1}.json")
+    for d in sorted(groups):
+        for ch in CHANNELS:
+            files.append(f"scs{d}{ch}_fix_refbond_{r0}_{r1}.json")
     return files
 
 
 def main():
-    mode, check_dir, geometry, ly, lx, refbonds, reverse = parse_args(sys.argv)
-    files = expected_files(geometry, ly, lx, refbonds, reverse)
+    mode, check_dir, geometry, ly, lx, refbond = parse_args(sys.argv)
+    files = expected_files(geometry, ly, lx, refbond)
     if mode == "list":
         print("\n".join(files))
         return
     if mode == "check":
         present = sorted(f for f in os.listdir(check_dir) if f.endswith(".json"))
-        expected = sorted(files + ["repeat_measurement_scatter.json"])
+        expected = sorted(files)
         missing = [f for f in expected if f not in present]
         extra = [f for f in present if f not in expected]
         if missing:
