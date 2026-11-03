@@ -25,15 +25,40 @@ qlmps）。集群侧信息需回填（见下）。
 - `QLMPS_USE_GPU`：`OFF`；`COMPILE_FIX_CODE`：`OFF`；timing 选项全 `OFF`。
 - 依赖：BLAS/LAPACK（MKL）、MPI、OpenMP、hptt。
 
-## 集群环境（待回填）
+## 集群环境（已回填：N=64 冒烟，2026-11-03，smoke_env_record.txt）
 
 - 环境入口：`source ${HOME}/myenv.sh`（cmake/4.0.0-rc1、gcc/12.1.0、jq/1.7.1
   模块 + Intel oneAPI `setvars.sh`；冒烟脚本与其同源）。
-- [ ] qlten 安装路径与版本：`__________`
-- [ ] qlmps 安装路径与版本：`__________`
-- [ ] module 列表（`module list` 输出，冒烟时记录于 smoke_env_record.txt）：`__________`
-- [ ] 编译器版本（`icpc --version` 或 `icpx --version`）：`__________`
-- [ ] python3 来源（系统或模块）：`__________`
+- qlten 安装路径与版本：`/share/home/zhangkun/.local/include/qlten`
+  （header-only；qlten.h 时间戳 2025-10-17，无版本号）。
+- qlmps 安装路径与版本：`/share/home/zhangkun/.local/include/qlmps`
+  （header-only，集群安装；版本号未记录，与本地 UltraDMRG 不一致，见上）。
+- module 列表（`module list`，冒烟时记录）：
+  `1) cmake/4.0.0-rc1  2) gcc/12.1.0  3) jq/1.7.1`
+- 编译器版本：`icpc` 不存在（oneAPI 2025 已移除经典 icpc）；`icpx` =
+  Intel oneAPI DPC++/C++ Compiler 2025.2.1（2025.2.0.20250806）。
+  冒烟构建显式指定 `gcc/g++ 12.1.0`（与 libhptt.a 工具链匹配）。
+- python3 来源：系统 `/usr/bin/python3`（Python 3.6.8）。
+- 其他依赖：hptt `~/.local/include` + `~/.local/lib/libhptt.a`；
+  CMAKE_PREFIX_PATH=`/share/home/zhangkun/.local/include`。
+
+## 复值链路冒烟验收记录（2026-11-03，N=64 HoneycombXC 8×4）
+
+- 运行目录：`smoke_n64/run_20261103_224728/`（run 作业 `ALL STEPS OK`，
+  repo_head `f065209`；verify 重跑时 repo_head `5090aef`）。
+- 编译：real（RealCode=ON）与 complex（默认）均通过（GNU 12.1.0，无 OpenMP）。
+- DMRG：real 链 D=100→300、complex 链 D=100→300，E0/site 均为 −0.11183
+  （5 位小数一致；complex 测量虚部恒 0）。
+- 兼容性：旧 complex 二进制（2026-06-18 构建）vs 新 complex 二进制
+  单参考键 12 文件字节级一致。
+- verify（`verify_232524/`）：v1 scs 单参考键 PASS（360 行，scaled re-diff
+  8.8e-3，虚部 0）；v2 measure1 PASS（632 行，scaled re-diff 1.23e4 按
+  generic 口径仅报告；虚部 0）；`SMOKE VERIFY ALL OK`。
+- 口径说明：generic 模式（v2）比较两条独立收敛链，re-diff 受 D=300 收敛
+  精度限制（sz 涨落差异 ~1.2e-4），仅报告不作判据；scs 模式（v1）保留
+  完整数值硬判据（见 `docs/COMPLEX_RUN_PROTOCOL.md`）。
+- 结论：复值计算链路在实值态上重现实值结果（验收 1/2 通过）；不验证手性
+  态选择、不构成 d+id 证据。
 
 ## D 调度与收敛标准
 
