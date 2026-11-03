@@ -19,8 +19,10 @@ import os
 import sys
 
 # 显式 UTF-8 输出：避免 Windows GBK 本地环境下 stderr 编码与接收侧不一致
-sys.stdout.reconfigure(encoding="utf-8", newline="\n")
-sys.stderr.reconfigure(encoding="utf-8")
+# （Python 3.7+ 才有 reconfigure；3.6 集群上为无操作，Linux 下无需转换）
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", newline="\n")
+    sys.stderr.reconfigure(encoding="utf-8")
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                  "..", "tools"))

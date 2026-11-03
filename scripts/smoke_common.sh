@@ -12,7 +12,8 @@ cfg_get() {
   ${PYTHON_BIN} - "$1" "$2" <<'PY'
 import json
 import sys
-sys.stdout.reconfigure(newline="\n")  # 防止 Windows 文本模式把 \n 写成 \r\n
+if hasattr(sys.stdout, "reconfigure"):  # Python 3.7+；防 Windows 文本模式写 \r\n
+    sys.stdout.reconfigure(newline="\n")
 cfg = json.load(open(sys.argv[1], encoding="utf-8"))
 v = cfg[sys.argv[2]]
 if isinstance(v, bool):
@@ -27,7 +28,8 @@ cfg_list() {
   ${PYTHON_BIN} - "$1" "$2" <<'PY'
 import json
 import sys
-sys.stdout.reconfigure(newline="\n")
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(newline="\n")
 cfg = json.load(open(sys.argv[1], encoding="utf-8"))
 print("\n".join(str(x) for x in cfg[sys.argv[2]]))
 PY

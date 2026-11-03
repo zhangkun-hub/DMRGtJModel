@@ -24,11 +24,7 @@ COMMON=${REPO_ROOT}/scripts/smoke_common.sh
 # shellcheck source=/dev/null
 source "${COMMON}"
 
-module purge
-module load Anaconda3
-command -v "${PYTHON_BIN}" >/dev/null 2>&1 || die "python3 不可用"
-
-# ---------- 前置检查（fail-closed） ----------
+# ---------- 前置检查（fail-closed；先于环境设置，未完成的 run 快速失败） ----------
 RUN_DIR=${1:-}
 if [ -z "${RUN_DIR}" ]; then
   echo "usage: $0 <RUN_DIR>（RUN_DIR 由 smoke_n64_run.sh 结束时打印）" >&2
@@ -40,6 +36,16 @@ fi
 [ -f "${RUN_DIR}/smoke_config_used.json" ] || die "配置快照缺失：${RUN_DIR}/smoke_config_used.json"
 cmp -s "${RUN_DIR}/smoke_config_used.json" "${CONFIG_SRC}" \
   || die "run 使用的配置与当前 ${CONFIG_SRC} 不一致，拒绝验证"
+
+# ---------- 环境（与用户 ${HOME}/myenv.sh 同源） ----------
+module purge 2>/dev/null || true
+if [ -f "${HOME}/myenv.sh" ]; then
+  source "${HOME}/myenv.sh"
+else
+  die "缺少 ${HOME}/myenv.sh（cmake/gcc/jq 模块 + oneAPI setvars 的集群环境初始化脚本）"
+fi
+command -v "${PYTHON_BIN}" >/dev/null 2>&1 \
+  || die "python3 不可用（请在 ${HOME}/myenv.sh 中补充 python 模块或确认系统 python3）"
 
 # ---------- 配置（与 run 同源：smoke_n64_config.json + params.json） ----------
 PARAMS_FILE="${RUN_DIR}/run_real/params.json"

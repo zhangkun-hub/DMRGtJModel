@@ -43,7 +43,7 @@ verify 无 `--dependency` 前置（手动顺序提交）；若 run 未完成/失
 
 | # | 步骤 | 输入 | 输出 | 失败条件 | 资源 |
 |---|---|---|---|---|---|
-| 1 | 环境核对 | module 环境、`OLD_BUILD/CMakeCache.txt` | `smoke_env_record.txt`（run_dir、repo HEAD、module 列表、icpc/cmake 版本、依赖路径）；依赖前缀必须同时含 `qlten/` 与 `qlmps/` 目录 | 缓存条目缺失或依赖目录缺失 → 明确 FAIL（fail-fast） | 无 |
+| 1 | 环境核对 | `source ${HOME}/myenv.sh`（**与用户日常环境同源**：cmake/4.0.0-rc1、gcc/12.1.0、jq/1.7.1 模块 + oneAPI setvars）、`OLD_BUILD/CMakeCache.txt` | `smoke_env_record.txt`（run_dir、repo HEAD、module 列表、icpc/icpx 与 cmake 版本、依赖路径、hptt 缓存条目）；依赖前缀必须同时含 `qlten/` 与 `qlmps/` 目录 | myenv.sh 缺失、cmake/mpirun/python3 不可用、缓存条目缺失或依赖目录缺失 → 明确 FAIL（fail-fast） | 无 |
 | 2 | real build（C1 已修复） | 仓库源码 + 前缀 + `-DRealCode=ON` | `build_real/`、cmake/make 日志 | 编译错误 → 退出 1（CMakeLists 失效 target 已移除，全部 target 源文件存在性经静态测试核对） | ~10 min |
 | 3 | complex build | 同上，默认选项（`USE_COMPLEX`） | `build_complex/` | 同上 | ~10 min |
 | 4 | 旧/新二进制单参考键字节级 diff | 同一 `run_real/mps`（D=300 后）复制到 run_old_diff/run_new_diff（复制前必须不存在，复制后数量核对）；旧/新二进制同参测 `--refbond=0,1` | 两份 12 文件 | 任一 `scs{X}{a..d}_fix_refbond_0_1.json` `cmp` 不一致 → 退出 1 | ~1 min |

@@ -27,10 +27,13 @@ qlmps）。集群侧信息需回填（见下）。
 
 ## 集群环境（待回填）
 
+- 环境入口：`source ${HOME}/myenv.sh`（cmake/4.0.0-rc1、gcc/12.1.0、jq/1.7.1
+  模块 + Intel oneAPI `setvars.sh`；冒烟脚本与其同源）。
 - [ ] qlten 安装路径与版本：`__________`
 - [ ] qlmps 安装路径与版本：`__________`
-- [ ] module 列表（提交脚本中的 `module load ...` 序列）：`__________`
-- [ ] 编译器版本（`icpc --version`）：`__________`
+- [ ] module 列表（`module list` 输出，冒烟时记录于 smoke_env_record.txt）：`__________`
+- [ ] 编译器版本（`icpc --version` 或 `icpx --version`）：`__________`
+- [ ] python3 来源（系统或模块）：`__________`
 
 ## D 调度与收敛标准
 

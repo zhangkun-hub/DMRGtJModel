@@ -38,15 +38,7 @@ EXPECTED_PY=${REPO_ROOT}/scripts/smoke_expected_files.py
 # shellcheck source=/dev/null
 source "${COMMON}"
 
-# ---------- 环境模块 ----------
-module purge
-module load GCC/12.1.0
-module load compiler/2022.2.0 mkl/2022.2.0 mpi/2022.2.0
-module load Anaconda3
-
-command -v "${PYTHON_BIN}" >/dev/null 2>&1 || die "python3 不可用"
-
-# ---------- 唯一运行目录（fail-closed，原子创建） ----------
+# ---------- 唯一运行目录（fail-closed，原子创建；先于环境设置，保证失败也有痕迹） ----------
 RUN_ID=${SMOKE_RUN_ID:-$(date +%Y%m%d_%H%M%S)}
 RUN_DIR=${SMOKE_BASE}/run_${RUN_ID}
 mkdir "${SMOKE_BASE}" 2>/dev/null || true   # 父目录可共享
@@ -61,13 +53,25 @@ cp "${CONFIG_SRC}" "${RUN_DIR}/smoke_config_used.json"
 
 NTASKS=${SLURM_NTASKS:-4}
 
+# ---------- 环境（与用户 ${HOME}/myenv.sh 同源，避免脚本内模块名过期） ----------
+module purge 2>/dev/null || true
+if [ -f "${HOME}/myenv.sh" ]; then
+  source "${HOME}/myenv.sh"
+else
+  die "缺少 ${HOME}/myenv.sh（cmake/gcc/jq 模块 + oneAPI setvars 的集群环境初始化脚本）"
+fi
+command -v cmake >/dev/null 2>&1 || die "cmake 不可用（检查 ${HOME}/myenv.sh）"
+command -v mpirun >/dev/null 2>&1 || die "mpirun 不可用（检查 oneAPI setvars 是否生效）"
+command -v "${PYTHON_BIN}" >/dev/null 2>&1 \
+  || die "python3 不可用（请在 ${HOME}/myenv.sh 中补充 python 模块或确认系统 python3）"
+
 # ---------- step 0: 环境记录与依赖验证（先读后记，失败信息明确） ----------
 ENV_REC="${RUN_DIR}/smoke_env_record.txt"
 {
   echo "run_dir=${RUN_DIR}"
   echo "repo_head=$(git -C "${REPO_ROOT}" rev-parse HEAD 2>/dev/null || echo UNKNOWN)"
   module list 2>&1
-  icpc --version 2>&1 || true
+  icpc --version 2>&1 || icpx --version 2>&1 || true
   echo "cmake_version=$(cmake --version 2>&1 | head -1 || true)"
 } > "${ENV_REC}"
 
@@ -87,6 +91,16 @@ if [ ! -d "${PREFIX}/qlten" ] || [ ! -d "${PREFIX}/qlmps" ]; then
 fi
 echo "CMAKE_PREFIX_PATH=${PREFIX}" | tee -a "${ENV_REC}" >/dev/null
 
+# hptt 路径同样从旧缓存提取（新构建目录无缓存，需显式传入 cmake）
+HPTT_FLAGS=()
+while IFS= read -r line; do
+  key=${line%%=*}
+  key=${key%%:*}
+  val=${line#*=}
+  HPTT_FLAGS+=("-D${key}=${val}")
+done < <(grep -E "^hptt_" "${CACHE_FILE}" || true)
+echo "hptt_cache_entries=${HPTT_FLAGS[*]:-（无）}" | tee -a "${ENV_REC}" >/dev/null
+
 # ---------- 配置（唯一事实来源：smoke_n64_config.json + params.json） ----------
 GEOM=$(px "${PARAMS_SRC}" Geometry)
 LY=$(px "${PARAMS_SRC}" Ly)
@@ -99,7 +113,8 @@ BUILD(){ # BUILD <rel_dir> [cmake flags...]
   local dir=$1; shift
   ensure_new_dir "${RUN_DIR}/${dir}"
   cd "${RUN_DIR}/${dir}"
-  cmake "${REPO_ROOT}" -DCMAKE_PREFIX_PATH="${PREFIX}" "$@" | tee cmake.log
+  cmake "${REPO_ROOT}" -DCMAKE_PREFIX_PATH="${PREFIX}" "${HPTT_FLAGS[@]}" "$@" \
+    | tee cmake.log
   make -j8 | tee make.log
 }
 
