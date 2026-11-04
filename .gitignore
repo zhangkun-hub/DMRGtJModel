@@ -41,13 +41,13 @@ debug/
 
 # Project
 data/
-run/
+run*/
 
 # Python cache
 __pycache__/
 
 # Smoke test artifacts (cluster run dirs + copied logs)
-smoke_n64/
+smoke*/
 /step_log.txt
 
 # Archived DMRG logs copied back for reference

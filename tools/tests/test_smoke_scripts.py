@@ -323,11 +323,13 @@ def test_rerun_scripts():
     assert ".CaseParams.t2 = 0.01" in text and ".CaseParams.t2 = 0.0" in text
     # .temp 删除带防御（存在性 + basename 校验）
     assert 'basename "${TEMP_DIR}"' in text and 'rm -rf "${TEMP_DIR}"' in text
-    # 参数模板：d2_25 口径（NumHole=8，N=200 → Lx=25）
+    # 参数模板：d2_25 口径（δ=2/25=8% × N=200 → NumHole=16，N=200 → Lx=25；
+    # noise 数组 10 元素与归档 params.json 原件一致）
     with open(RERUN_PARAMS, encoding="utf-8") as f:
         cfg = json.load(f)["CaseParams"]
-    assert cfg["NumHole"] == 8 and cfg["Lx"] == 25 and cfg["Ly"] == 4
+    assert cfg["NumHole"] == 16 and cfg["Lx"] == 25 and cfg["Ly"] == 4
     assert cfg["t"] == 0.3 and cfg["J"] == 0.1 and cfg["Sweeps"] == 10
+    assert len(cfg["noise"]) == 10 and cfg["noise"][0] == 1e-2
     for p in (RERUN_MEAS_CORR, RERUN_MEAS_SUPER):
         m = read(p)
         assert "build_complex" in m and "set +u" in m
