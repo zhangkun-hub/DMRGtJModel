@@ -41,6 +41,10 @@ COMMON_SH = os.path.join(SCRIPTS, "smoke_common.sh")
 CONFIG = os.path.join(SCRIPTS, "smoke_n64_config.json")
 PARAMS = os.path.join(SCRIPTS, "smoke_n64_params.json")
 EXPECTED_PY = os.path.join(SCRIPTS, "smoke_expected_files.py")
+RERUN_DMRG = os.path.join(SCRIPTS, "rerun_complex_dmrg.sh")
+RERUN_MEAS_CORR = os.path.join(SCRIPTS, "rerun_complex_measure_corr.sh")
+RERUN_MEAS_SUPER = os.path.join(SCRIPTS, "rerun_complex_measure_super.sh")
+RERUN_PARAMS = os.path.join(SCRIPTS, "rerun_complex_params_d2_25.json")
 
 # Windows 下 python 的 subprocess 会把 "bash" 解析成 WSL 启动器；显式使用
 # Git Bash 的 bash.exe，并对传入路径做 posix 化。
@@ -310,6 +314,27 @@ def test_env_switch():
     print("  [PASS] 18. SMOKE_ENV 口径开关（default GNU / intel2022 icpc）")
 
 
+def test_rerun_scripts():
+    for p in (RERUN_DMRG, RERUN_MEAS_CORR, RERUN_MEAS_SUPER):
+        bash_n(p)
+    text = read(RERUN_DMRG)
+    # 复用步骤 0 的 icpc 复值 build；jq 生成两阶段参数（t2/J2 切换）
+    assert "build_complex" in text
+    assert ".CaseParams.t2 = 0.01" in text and ".CaseParams.t2 = 0.0" in text
+    # .temp 删除带防御（存在性 + basename 校验）
+    assert 'basename "${TEMP_DIR}"' in text and 'rm -rf "${TEMP_DIR}"' in text
+    # 参数模板：d2_25 口径（NumHole=8，N=200 → Lx=25）
+    with open(RERUN_PARAMS, encoding="utf-8") as f:
+        cfg = json.load(f)["CaseParams"]
+    assert cfg["NumHole"] == 8 and cfg["Lx"] == 25 and cfg["Ly"] == 4
+    assert cfg["t"] == 0.3 and cfg["J"] == 0.1 and cfg["Sweeps"] == 10
+    for p in (RERUN_MEAS_CORR, RERUN_MEAS_SUPER):
+        m = read(p)
+        assert "build_complex" in m and "set +u" in m
+    assert '"49,50" "50,51" "50,54"' in read(RERUN_MEAS_SUPER)
+    print("  [PASS] 19. rerun_complex 脚本（bash -n + 关键口径断言）")
+
+
 def test_run_dir_exclusive():
     # 17. 同一 RUN_ID 二次创建失败（fail-closed 互斥）
     tree = make_fake_tree()
@@ -336,6 +361,7 @@ def main():
     test_verify_preflight()
     test_config_change_propagates()
     test_env_switch()
+    test_rerun_scripts()
     test_run_dir_exclusive()
     subprocess.run([sys.executable,
                     os.path.join(HERE, "test_cmake_sources.py")], check=True)
