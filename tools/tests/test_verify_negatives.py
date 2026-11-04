@@ -23,6 +23,7 @@ TOOLS = os.path.join(HERE, os.pardir)
 SCRIPT = os.path.join(TOOLS, "verify_complex_reproduces_real.py")
 sys.path.insert(0, TOOLS)
 import honeycomb_geometry as hg  # noqa: E402
+import verify_complex_reproduces_real as vc  # noqa: E402
 
 GEOM, LY, LX = "HoneycombXC", 4, 8
 REFBONDS = "0,1"
@@ -203,6 +204,18 @@ def main():
         with open(os.path.join(base, "complex.log"), "w") as f:
             f.write("sweep 1\n")
         expect(base, False, "E0/site missing from complex log")
+
+        # E0 parse: slave zeros surround master values; multi-stage logs ->
+        # the LAST NONZERO wins (final state of an adiabatic chain)
+        log = os.path.join(tmp, "e0_order.log")
+        with open(log, "w") as f:
+            f.write("E0/site: 0\nE0/site: -0.13949\nE0/site: 0\n"
+                    "E0/site: -0.13587\nE0/site: 0\n")
+        assert vc.parse_e0_per_site(log) == -0.13587
+        with open(log, "w") as f:
+            f.write("E0/site: 0\n")
+        assert vc.parse_e0_per_site(log) == 0.0
+        print("  [PASS] E0 parse: last nonzero (slave zeros filtered)")
 
         # generic mode: clean PASS
         base = os.path.join(tmp, "generic_clean")

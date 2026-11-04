@@ -95,6 +95,16 @@ scaled re-diff 2.1e-2、虚部 0；v2 generic PASS：632 行、虚部 0；E0 一
 4. 数据回传本地，verify（scs vs 归档 1500 档、generic、E0 vs 归档日志）；
 5. 验收通过 → 记录 → 审批铺开。
 
+**试点验收结果（2026-11-05，已通过）**：复值 dmrg 两阶段 E0/site
+−0.13949 / −0.13587 与归档逐位一致；测量 3 refbond × 12 scs 文件 +
+2 源点 × 10 文件全部产出。verify（`verify_d2_25/`，5 份报告）全部 PASS：
+v1 scs × 3 refbond 数值硬判据通过（scaled re-diff ≤ 2.95e-2，虚部精确 0，
+E0 diff 0）；v2 measure1 × 2 源点通过（虚部精确 0，E0 diff 0，re-diff
+scaled 228 仅报告）。修复：`parse_e0_per_site` 改为取最后一个非零
+E0/site（slave 打印 0 且两阶段日志有多个 master 值，旧逻辑取第一行会
+误取 slave 的 0）。数据已落消费侧 `Data_Complex/Data_N200/t_J_3/d2_25/`
+（测量两目录 + 复值 dmrg 日志）。
+
 ### 步骤 2：铺开（已取消，修订 3）
 
 - 用户决定 d1_10/d1_20/d3_25 不跑：若 d2_25 完全符合，其余 doping 的
@@ -104,7 +114,9 @@ scaled re-diff 2.1e-2、虚部 0；v2 generic PASS：632 行、虚部 0；E0 一
 
 ### 步骤 3：验收与归档
 
-- 全部组合 verify 报告存档；协议文档记录完成状态与数据落点；
+- **已完成（2026-11-05）**：d2_25 verify 报告存档于 `verify_d2_25/`
+  （本仓库）；数据落消费侧 `Data_Complex/Data_N200/t_J_3/d2_25/`；
+- 协议文档记录完成状态与数据落点；
 - 任何口径调整（如 scs 超差处置）走与 N=64 v2 相同的评审流程。
 
 ## 4. 前置确认项状态

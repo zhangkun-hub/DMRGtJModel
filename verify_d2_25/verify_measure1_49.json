@@ -1,0 +1,44 @@
+{
+ "complex_dir": "C:\\Users\\ZhangKun\\Desktop\\DMRGtJModel\\1500_measure_phys_qty\\measure_49",
+ "real_dir": "C:\\Users\\ZhangKun\\Desktop\\DMRG-data-processing\\DMRG data visualization\\Data\\Data_N200\\t_J_3\\d2_25\\1500_measure_phys_qty\\measure_49",
+ "tolerances": {
+  "atol": 1e-08,
+  "rtol": 1e-08
+ },
+ "mode": "generic",
+ "integrity": {
+  "generic": {
+   "real": {
+    "duplicates": {},
+    "parse_errors": {},
+    "nonfinite": {}
+   },
+   "complex": {
+    "duplicates": {},
+    "parse_errors": {},
+    "nonfinite": {}
+   }
+  },
+  "cross": {
+   "files_missing_from_complex": [],
+   "files_missing_from_real": [],
+   "rows_missing_from_complex": [],
+   "rows_missing_from_real": []
+  }
+ },
+ "numeric": {
+  "n_rows_compared": 1600,
+  "max_re_diff_scaled": 228.57405640234597,
+  "max_im_scaled": 0.0,
+  "scaled_threshold": 1.0,
+  "re_diff_enforced": false
+ },
+ "energy": {
+  "complex_E0_per_site": -0.13587,
+  "real_E0_per_site": -0.13587,
+  "ok": true,
+  "diff": 0.0,
+  "threshold": 1.13587e-08
+ },
+ "verdict": "PASS"
+}

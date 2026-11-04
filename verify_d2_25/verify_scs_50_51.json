@@ -1,0 +1,60 @@
+{
+ "complex_dir": "C:\\Users\\ZhangKun\\Desktop\\DMRGtJModel\\1500_measure_super_corr\\super_corr_50_51",
+ "real_dir": "C:\\Users\\ZhangKun\\Desktop\\DMRG-data-processing\\DMRG data visualization\\Data\\Data_N200\\t_J_3\\d2_25\\1500_measure_super_corr\\super_corr_50_51",
+ "tolerances": {
+  "atol": 1e-08,
+  "rtol": 1e-08
+ },
+ "mode": "scs",
+ "integrity": {
+  "scs": {
+   "real": {
+    "missing_files": [],
+    "extra_files": [],
+    "missing_rows": [],
+    "extra_rows": [],
+    "duplicates": {},
+    "parse_errors": {},
+    "nonfinite": {},
+    "direction_mismatch": [],
+    "file_count_ok": true
+   },
+   "complex": {
+    "missing_files": [],
+    "extra_files": [],
+    "missing_rows": [],
+    "extra_rows": [],
+    "duplicates": {},
+    "parse_errors": {},
+    "nonfinite": {},
+    "direction_mismatch": [],
+    "file_count_ok": true
+   },
+   "manifest": {
+    "n_files": 12,
+    "refbonds": [
+     [
+      50,
+      51
+     ]
+    ],
+    "reverse_channels": false
+   }
+  }
+ },
+ "numeric": {
+  "n_rows_compared": 880,
+  "max_re_diff_scaled": 0.029503647615347784,
+  "max_im_scaled": 0.0,
+  "scaled_threshold": 1.0,
+  "re_diff_enforced": true
+ },
+ "energy": {
+  "complex_E0_per_site": -0.13587,
+  "real_E0_per_site": -0.13587,
+  "ok": true,
+  "diff": 0.0,
+  "threshold": 1.13587e-08
+ },
+ "verdict": "PASS"
+}

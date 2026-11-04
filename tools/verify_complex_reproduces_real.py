@@ -196,15 +196,28 @@ def check_generic_dir(dirpath):
 
 
 def parse_e0_per_site(log_path):
+    """Last NONZERO E0/site line (master value).
+
+    Slave ranks print "E0/site: 0" (often before and after the master's
+    negative value), and multi-stage runs (adiabatic chains) print one
+    master value per stage — the last nonzero is the final state's energy.
+    """
+    last_nonzero = None
+    first = None
     with open(log_path, "r", encoding="utf-8", errors="replace") as f:
         for line in f:
             m = re.search(r"E0/site:\s*([^\s]+)", line)
-            if m:
-                try:
-                    return float(m.group(1))
-                except ValueError:
-                    return None
-    return None
+            if not m:
+                continue
+            try:
+                v = float(m.group(1))
+            except ValueError:
+                return None
+            if first is None:
+                first = v
+            if v != 0.0:
+                last_nonzero = v
+    return last_nonzero if last_nonzero is not None else first
 
 
 def integrity_ok(scs_res=None, generic_res=None, cross=None, energy=None):
