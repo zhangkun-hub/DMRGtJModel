@@ -73,6 +73,14 @@
   成功后 `sbatch scripts/smoke_n64_verify.sh <RUN_DIR>`；
 - 通过标准：`ALL STEPS OK` + `SMOKE VERIFY ALL OK`；未通过则停止。
 
+**步骤 0 结果（2026-11-04，已通过）**：运行目录
+`smoke_n64/run_20261104_022655/`（`smoke_env=intel2022`，icpc 2021.10.0 +
+OpenMP，cmake 3.26.4）。run `ALL STEPS OK`（含旧/新二进制 12 文件字节级
+diff 一致）；verify `SMOKE VERIFY ALL OK`（v1 scs 硬判据 PASS：360 行、
+scaled re-diff 2.1e-2、虚部 0；v2 generic PASS：632 行、虚部 0；E0 一致
+−0.11183）。该运行目录的 `build_complex/` 二进制（icpc 复值）为步骤 1
+直接复用，无需重新编译。
+
 ### 步骤 1：试点组合（N200 d2_25，低档）
 
 1. 新建 `run_N200_d2_25_complex/`，params.json 按归档日志逐字段构造
