@@ -166,8 +166,15 @@ qlten 张量库（本地没有源码）的 5 个接口细节：复数元素构�
 | 实现（参数解析、NN 链接、两通道 MPS、MPI 同步、文档） | ✅ 完成（源码审查通过） |
 | 本地静态检查（`test_complex_init_option.py` 54 项） | ✅ PASS |
 | 总 QN 守恒检查（`total_qn_a == total_qn_b`）语义 | ✅ 已核实：只证明"交换前后总 QN 一致"，**不构成** tJSite 基序（0=up/1=dn/2=hole）验证 |
-| tJSite 局域基序核实 | ⚠️ NOT VERIFIED——需集群 qlten 源码检查（本地 UltraDMRG 无 tJSite 定义） |
+| tJSite 局域基序核实 | ✅ PASS（集群核实，见下） |
 | 运行时构造测试（`test_complex_perturb_init.cpp`） | ⚠️ 已修订为可编译版本（修复 4 参签名、amp_a 归一化、参数化 eps/swap）；**未在集群运行（NOT RUN）** |
 | Intel complex/real 双编译 | ❌ NOT RUN |
 | MPI 错误路径验证 | ❌ NOT RUN |
 | N=64 生产口径冒烟 | ❌ NOT RUN |
+
+**tJSite 局域基序核实记录（2026-11-05，集群源码）**：
+
+- 源文件：`qlmps/model_relevant/sites/fermion/tJ_sites.h`（集群 ~/.local/include）
+- 确认基序：`spin_up = 0`、`spin_down = 1`、`empty = 2`
+- U(1)×U(1) 量子数：up → N=1, Sz=+1；down → N=1, Sz=−1；hole → N=0, Sz=0
+- 结论：局域物理基序与 `dmrg.cpp` 的 Néel 初始化约定（A 子晶格=0、B 子晶格=1）及复值扰动的自旋交换逻辑**一致**——一次 ↑↓ 交换保持总 N 与总 Sz 不变，扰动严格留在同一量子数扇区内

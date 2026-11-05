@@ -212,6 +212,11 @@ int main(int argc, char *argv[]) {
 #ifndef USE_REAL
   std::vector<size_t> perturb_labs;
   size_t swap_s1 = 0, swap_s2 = 0;
+  // Amplitudes computed in the pre-master block below and consumed by the
+  // master-rank MPS construction later — declared at the outer guard scope.
+  double amp_a_val = 0.0;
+  double amp_b_re = 0.0;
+  double amp_b_im = 0.0;
   if (use_complex_perturb) {
     if (!is_honeycomb) {
       if (rank == kMPIMasterRank) {
@@ -295,9 +300,9 @@ int main(int argc, char *argv[]) {
     }
 
     double norm_factor = std::hypot(1.0, complex_init_eps);
-    double amp_a_val = 1.0 / norm_factor;
-    double amp_b_re = complex_init_eps / (std::sqrt(2.0) * norm_factor);
-    double amp_b_im = amp_b_re;
+    amp_a_val = 1.0 / norm_factor;
+    amp_b_re = complex_init_eps / (std::sqrt(2.0) * norm_factor);
+    amp_b_im = amp_b_re;
     if (!std::isfinite(amp_a_val) || !std::isfinite(amp_b_re)) {
       if (rank == kMPIMasterRank) {
         std::cerr << "[error] eps=" << complex_init_eps
