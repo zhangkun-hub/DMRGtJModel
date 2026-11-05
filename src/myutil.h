@@ -8,6 +8,7 @@
 size_t GetNumofMps();
 void Show(std::vector<size_t> v);
 bool ParserBondDimension(int, char *[], std::vector<size_t>& );
+bool ParserComplexInitArgs(int argc, char *argv[], double &eps_mag, unsigned long &seed);
 size_t ComputeTotalSites(const CaseParams &params);
 bool IsHoneycombGeometry(const CaseParams &params);
 

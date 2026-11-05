@@ -75,3 +75,21 @@ Below is a description of each parameter and its role in the simulation.
   ```bash
   ./dmrg src/params.json
   ```
+
+---
+
+## Command-Line Options
+
+In addition to `params.json`, the `dmrg` binary accepts the following command-line flags:
+
+| Option | Default | Description |
+|---|---|---|
+| `--D=d1,d2,...` | (use JSON `Dmin`/`Dmax`) | Bond dimension schedule. Comma-separated, ascending, no spaces. The program runs one sweep pass per value. `MaxLanczIter` is ramped linearly from 3 to the JSON value across the list. |
+| `--complex-init-eps=<value>` | 0 (disabled) | Complex perturbation amplitude $\varepsilon$. Must be non-negative. When `> 0`, constructs a superposition initial MPS: $|\Psi\rangle \propto |\text{Neel}\rangle + \varepsilon_c |b\rangle$ where $\varepsilon_c = \varepsilon (1+i)/\sqrt{2}$. **Requires**: complex build (`RealCode=OFF`), honeycomb geometry, no existing `./mps` directory. |
+| `--complex-init-seed=<uint>` | 12345 | Random seed for selecting the NN swap link used in the perturbation. Must be a non-negative integer in the range `[0, 4294967295]` (`UINT32_MAX`). Fixed seed ensures reproducibility across runs. |
+
+**Notes:**
+
+- `--complex-init-eps` is independent of the DMRG noise mechanism (`noised_vmps`). The former modifies the initial wavefunction; the latter adds noise during the optimization sweeps.
+- If `--complex-init-eps > 0` and `./mps` already exists, `dmrg` exits with an error to prevent overwriting converged results. Remove or rename `./mps` first.
+- The perturbation swaps a pair of opposite spins on a real honeycomb nearest-neighbor bond, preserving total particle number and total `Sz`.

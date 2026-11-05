@@ -1,6 +1,11 @@
 #include "qlmps/qlmps.h"
 #include "myutil.h"
 #include <random>
+#include <cmath>
+#include <cerrno>
+#include <cstring>
+#include <cstdint>
+#include <climits>
 
 using qlmps::kMpsPath;
 using qlmps::kMpsTenBaseName;
@@ -61,6 +66,75 @@ bool ParserBondDimension(int argc, char *argv[],
   }
 
   return has_D_parameter;
+}
+
+bool ParserComplexInitArgs(int argc, char *argv[], double &eps_mag, unsigned long &seed) {
+  eps_mag = 0.0;
+  seed = 12345;
+
+  const char *eps_prefix = "--complex-init-eps=";
+  const size_t eps_prefix_len = 19;
+  const char *seed_prefix = "--complex-init-seed=";
+  const size_t seed_prefix_len = 20;
+
+  for (int i = 1; i < argc; i++) {
+    if (strncmp(argv[i], eps_prefix, eps_prefix_len) == 0) {
+      const char *val_str = argv[i] + eps_prefix_len;
+      if (*val_str == '\0') {
+        std::cerr << "[error] --complex-init-eps value is empty." << std::endl;
+        return false;
+      }
+      char *end = nullptr;
+      errno = 0;
+      double val = strtod(val_str, &end);
+      if (end == val_str || *end != '\0') {
+        std::cerr << "[error] --complex-init-eps: failed to parse '"
+                  << val_str << "'." << std::endl;
+        return false;
+      }
+      if (errno == ERANGE) {
+        std::cerr << "[error] --complex-init-eps: value out of range '"
+                  << val_str << "'." << std::endl;
+        return false;
+      }
+      if (!std::isfinite(val)) {
+        std::cerr << "[error] --complex-init-eps: NaN or Inf is not allowed." << std::endl;
+        return false;
+      }
+      if (val < 0.0) {
+        std::cerr << "[error] --complex-init-eps: negative value " << val
+                  << " is not allowed." << std::endl;
+        return false;
+      }
+      eps_mag = val;
+    } else if (strncmp(argv[i], seed_prefix, seed_prefix_len) == 0) {
+      const char *val_str = argv[i] + seed_prefix_len;
+      if (*val_str == '\0') {
+        std::cerr << "[error] --complex-init-seed value is empty." << std::endl;
+        return false;
+      }
+      if (*val_str == '-') {
+        std::cerr << "[error] --complex-init-seed: negative value is not allowed." << std::endl;
+        return false;
+      }
+      char *end = nullptr;
+      errno = 0;
+      unsigned long val = strtoul(val_str, &end, 10);
+      if (end == val_str || *end != '\0') {
+        std::cerr << "[error] --complex-init-seed: failed to parse '"
+                  << val_str << "'." << std::endl;
+        return false;
+      }
+      if (errno == ERANGE || val > UINT32_MAX) {
+        std::cerr << "[error] --complex-init-seed: value out of range '"
+                  << val_str << "'." << std::endl;
+        return false;
+      }
+      seed = val;
+    }
+  }
+
+  return true;
 }
 
 bool IsHoneycombGeometry(const CaseParams &params) {
