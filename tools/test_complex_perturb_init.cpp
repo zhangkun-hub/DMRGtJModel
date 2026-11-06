@@ -227,27 +227,74 @@ int main(int argc, char *argv[]) {
 
   std::cout << "=== Section 7.1: Sector Structure ===" << std::endl;
 
-  // Check each cut: 2 sectors, each dim 1, QN same/different per prefix QN
-  // derivation (same outside the swap pair, different inside).
+  // Expected right-bond structure of cut k (between sites k-1 and k, 1-based)
+  // is driven by the swap pair (s1, s2) and the observed QLTEN sector
+  // organization (cluster run, swap=(1,2)):
+  //   k <= s1     : the two lanes carry identical QN, QLTEN merges them
+  //                 -> 1 sector, dim 2; coordinates 0 and 1 share the QN.
+  //   s1 < k <= s2: lanes differ -> 2 sectors, dim 1 each, different QNs.
+  //   k > s2      : one remaining sector, dim 1 -> coordinate 1 is out of
+  //                 range and must NOT be accessed.
+  // Every coordinate access below is gated by the computed total bond
+  // dimension; out-of-range coordinates are never touched.
   for (size_t i = 0; i < N - 1; ++i) {
+    const size_t k = i + 1;
     auto idx = mps[i].GetIndexes()[2];  // right virtual index
-    size_t num_scts = idx.GetQNSctNum();
-    std::string cut_msg = "Cut " + std::to_string(i + 1) + ": right bond has 2 sectors";
-    CHECK(num_scts == 2, cut_msg.c_str());
-    if (num_scts != 2) continue;
+    const size_t num_scts = idx.GetQNSctNum();
 
-    auto qn0 = idx.GetQNSct(0).GetQn();
-    auto qn1 = idx.GetQNSct(1).GetQn();
-    CHECK(idx.GetQNSct(0).dim() == 1 && idx.GetQNSct(1).dim() == 1,
-          "each sector has dim 1");
+    // Total bond dimension = sum of sector dims (summed explicitly so no
+    // out-of-range sector API is ever called).
+    size_t total_dim = 0;
+    for (size_t s = 0; s < num_scts; ++s) {
+      total_dim += idx.GetQNSct(s).dim();
+    }
 
-    bool same = (qn0 == qn1);
-    // Prefix differs iff the cut lies inside the swap pair (s1 < i+1 <= s2).
-    bool prefix_differs = (i + 1 > swap_s1) && (i + 1 <= swap_s2);
-    if (prefix_differs) {
-      CHECK(!same, "cut inside swap pair: QNs differ");
+    if (k <= swap_s1) {
+      std::string m = "Cut " + std::to_string(k) + " (k<=s1): 1 merged sector";
+      CHECK(num_scts == 1, m.c_str());
+      m = "Cut " + std::to_string(k) + " (k<=s1): bond dim 2";
+      CHECK(total_dim == 2, m.c_str());
+      if (num_scts == 1) {
+        m = "Cut " + std::to_string(k) + " (k<=s1): sector dim 2";
+        CHECK(idx.GetQNSct(0).dim() == 2, m.c_str());
+      }
+      if (total_dim >= 2) {
+        auto qn0 = idx.GetQNSctFromActualCoor(0).GetQn();
+        auto qn1 = idx.GetQNSctFromActualCoor(1).GetQn();
+        m = "Cut " + std::to_string(k) + " (k<=s1): coor 0/1 same QN";
+        CHECK(qn0 == qn1, m.c_str());
+      }
+    } else if (k <= swap_s2) {
+      std::string m = "Cut " + std::to_string(k) + " (s1<k<=s2): 2 sectors";
+      CHECK(num_scts == 2, m.c_str());
+      m = "Cut " + std::to_string(k) + " (s1<k<=s2): bond dim 2";
+      CHECK(total_dim == 2, m.c_str());
+      if (num_scts == 2) {
+        m = "Cut " + std::to_string(k) + " (s1<k<=s2): each sector dim 1";
+        CHECK(idx.GetQNSct(0).dim() == 1 && idx.GetQNSct(1).dim() == 1,
+              m.c_str());
+      }
+      if (total_dim >= 2) {
+        auto qn0 = idx.GetQNSctFromActualCoor(0).GetQn();
+        auto qn1 = idx.GetQNSctFromActualCoor(1).GetQn();
+        m = "Cut " + std::to_string(k) + " (s1<k<=s2): coor 0/1 differ in QN";
+        CHECK(!(qn0 == qn1), m.c_str());
+      }
     } else {
-      CHECK(same, "cut outside swap pair: QNs identical");
+      // k > s2: single sector dim 1; coordinate 1 is out of range here.
+      std::string m = "Cut " + std::to_string(k) + " (k>s2): 1 sector";
+      CHECK(num_scts == 1, m.c_str());
+      m = "Cut " + std::to_string(k) + " (k>s2): bond dim 1";
+      CHECK(total_dim == 1, m.c_str());
+      if (num_scts == 1) {
+        m = "Cut " + std::to_string(k) + " (k>s2): sector dim 1";
+        CHECK(idx.GetQNSct(0).dim() == 1, m.c_str());
+      }
+      if (total_dim >= 1) {
+        auto qn0 = idx.GetQNSctFromActualCoor(0).GetQn();
+        m = "Cut " + std::to_string(k) + " (k>s2): coor 0 maps to sector QN";
+        CHECK(qn0 == idx.GetQNSct(0).GetQn(), m.c_str());
+      }
     }
   }
 
