@@ -398,8 +398,9 @@ int main(int argc, char *argv[]) {
   // (head right QN = total - p_qn; middle right QN = left - p_qn; tail right
   // boundary = zero QN):
   //   Div(T_0) = Q_total,   Div(T_i) = 0 for 1 <= i < N.
-  // CalcDiv is defined as -sum(IN) + sum(OUT); the constructed tensors use
-  // index directions (IN, OUT, OUT). Every valid block is checked
+  // CalcDiv is defined as -sum(IN) + sum(OUT); after Centralize(0) the
+  // tensor directions are (IN,OUT,IN) at the head, (OUT,OUT,IN) in the
+  // middle, (OUT,OUT,OUT) at the tail. Every valid block is checked
   // independently, not merely the first one.
   const int failures_before_75 = failures;
 
@@ -412,7 +413,22 @@ int main(int argc, char *argv[]) {
     const auto &ten = mps[site];
     const size_t rank = ten.Rank();
     std::cout << "  rank=" << rank << std::endl;
-    std::cout << "  directions=(IN,OUT,OUT) [checked per index below]" << std::endl;
+
+    // Expected directions after Centralize(0), cluster-verified:
+    //   head  (site 0)  : (IN,  OUT, IN)
+    //   middle sites    : (OUT, OUT, IN)
+    //   tail  (site N-1): (OUT, OUT, OUT)
+    const auto exp_dir0 = (site == 0) ? qlten::TenIndexDirType::IN
+                                      : qlten::TenIndexDirType::OUT;
+    const auto exp_dir1 = qlten::TenIndexDirType::OUT;
+    const auto exp_dir2 = (site + 1 == N) ? qlten::TenIndexDirType::OUT
+                                          : qlten::TenIndexDirType::IN;
+    const auto dir_str = [](const qlten::TenIndexDirType d) -> std::string {
+      return (d == qlten::TenIndexDirType::IN) ? "IN" : "OUT";
+    };
+    std::cout << "  directions=(" << dir_str(exp_dir0) << "," << dir_str(exp_dir1)
+              << "," << dir_str(exp_dir2) << ") [checked per index below]"
+              << std::endl;
     std::cout << "  expected_divergence=" << ((site == 0) ? "total_qn" : "zero_qn")
               << std::endl;
     std::string m = "Site " + std::to_string(site) +
@@ -424,12 +440,12 @@ int main(int argc, char *argv[]) {
     }
 
     const auto &indexes = ten.GetIndexes();
-    m = "Site " + std::to_string(site) + ": index 0 direction IN";
-    CHECK(indexes[0].GetDir() == qlten::TenIndexDirType::IN, m.c_str());
-    m = "Site " + std::to_string(site) + ": index 1 direction OUT";
-    CHECK(indexes[1].GetDir() == qlten::TenIndexDirType::OUT, m.c_str());
-    m = "Site " + std::to_string(site) + ": index 2 direction OUT";
-    CHECK(indexes[2].GetDir() == qlten::TenIndexDirType::OUT, m.c_str());
+    m = "Site " + std::to_string(site) + ": index 0 direction " + dir_str(exp_dir0);
+    CHECK(indexes[0].GetDir() == exp_dir0, m.c_str());
+    m = "Site " + std::to_string(site) + ": index 1 direction " + dir_str(exp_dir1);
+    CHECK(indexes[1].GetDir() == exp_dir1, m.c_str());
+    m = "Site " + std::to_string(site) + ": index 2 direction " + dir_str(exp_dir2);
+    CHECK(indexes[2].GetDir() == exp_dir2, m.c_str());
 
     const auto &blk_map = ten.GetBlkSparDataTen().GetBlkIdxDataBlkMap();
     std::cout << "  block_count=" << blk_map.size() << std::endl;
