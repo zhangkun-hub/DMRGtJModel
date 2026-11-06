@@ -381,8 +381,122 @@ int main(int argc, char *argv[]) {
   CHECK(extra_count == 0, "No extra configuration amplitudes");
 
   std::cout << "\n=== Section 7.5: Per-Tensor QN Conservation ===" << std::endl;
-  // Requires qlten element-iteration API, not confirmed locally.
-  std::cout << "NOT RUN: per-tensor QN conservation (needs qlten element iteration API)" << std::endl;
+
+  // Total QN of the validated physical configuration |a> (label mapping
+  // 0=up, 1=dn, 2=hole verified on the cluster). Both lanes share it because
+  // the spin swap preserves particle number and Sz. Zero QN is defined by
+  // subtraction, matching the production constructor (complex_perturb_init.h).
+  auto sites_info = mps.GetSitesInfo();
+  const auto &pb_sites = sites_info.sites;
+  QNT total_qn = pb_sites[0].GetQNSctFromActualCoor(a_labs[0]).GetQn();
+  for (size_t i = 1; i < N; ++i) {
+    total_qn += pb_sites[i].GetQNSctFromActualCoor(a_labs[i]).GetQn();
+  }
+  const QNT zero_qn = total_qn - total_qn;
+
+  // Expected per-site divergence, from the production constructor's QN flow
+  // (head right QN = total - p_qn; middle right QN = left - p_qn; tail right
+  // boundary = zero QN):
+  //   Div(T_0) = Q_total,   Div(T_i) = 0 for 1 <= i < N.
+  // CalcDiv is defined as -sum(IN) + sum(OUT); the constructed tensors use
+  // index directions (IN, OUT, OUT). Every valid block is checked
+  // independently, not merely the first one.
+  const int failures_before_75 = failures;
+
+  for (size_t site = 0; site < N; ++site) {
+    std::cout << "Site " << site << ":" << std::endl;
+
+    // --- A. Tensor structure ---
+    // A default-constructed tensor has no indices (Rank() == 0), so a rank of
+    // 3 also proves the tensor was initialized.
+    const auto &ten = mps[site];
+    const size_t rank = ten.Rank();
+    std::cout << "  rank=" << rank << std::endl;
+    std::cout << "  directions=(IN,OUT,OUT) [checked per index below]" << std::endl;
+    std::cout << "  expected_divergence=" << ((site == 0) ? "total_qn" : "zero_qn")
+              << std::endl;
+    std::string m = "Site " + std::to_string(site) +
+                    ": rank == 3 (initialized, not default-constructed)";
+    CHECK(rank == 3, m.c_str());
+    if (rank != 3) {
+      std::cerr << "  skipping per-block checks: invalid rank" << std::endl;
+      continue;
+    }
+
+    const auto &indexes = ten.GetIndexes();
+    m = "Site " + std::to_string(site) + ": index 0 direction IN";
+    CHECK(indexes[0].GetDir() == qlten::TenIndexDirType::IN, m.c_str());
+    m = "Site " + std::to_string(site) + ": index 1 direction OUT";
+    CHECK(indexes[1].GetDir() == qlten::TenIndexDirType::OUT, m.c_str());
+    m = "Site " + std::to_string(site) + ": index 2 direction OUT";
+    CHECK(indexes[2].GetDir() == qlten::TenIndexDirType::OUT, m.c_str());
+
+    const auto &blk_map = ten.GetBlkSparDataTen().GetBlkIdxDataBlkMap();
+    std::cout << "  block_count=" << blk_map.size() << std::endl;
+    m = "Site " + std::to_string(site) + ": block map non-empty";
+    CHECK(!blk_map.empty(), m.c_str());
+    m = "Site " + std::to_string(site) + ": block map size == GetQNBlkNum";
+    CHECK(blk_map.size() == ten.GetQNBlkNum(), m.c_str());
+    if (blk_map.empty()) {
+      std::cerr << "  skipping per-block checks: empty block map" << std::endl;
+      continue;
+    }
+
+    // --- B/C/D. Block coordinates, per-block divergence, expected value ---
+    bool first_valid = false;
+    QNT reference_div = zero_qn;
+    size_t valid_blocks = 0;
+    for (const auto &kv : blk_map) {
+      const size_t blk_key = kv.first;
+      const auto &data_blk = kv.second;
+
+      const bool coors_ok = (data_blk.blk_coors.size() == rank);
+      m = "Site " + std::to_string(site) + " block " + std::to_string(blk_key) +
+          ": blk_coors size == rank";
+      CHECK(coors_ok, m.c_str());
+      m = "Site " + std::to_string(site) + " block " + std::to_string(blk_key) +
+          ": shape size == rank";
+      CHECK(data_blk.shape.size() == rank, m.c_str());
+
+      bool bounds_ok = coors_ok;
+      for (size_t axis = 0; axis < rank && bounds_ok; ++axis) {
+        if (data_blk.blk_coors[axis] >= indexes[axis].GetQNSctNum()) {
+          bounds_ok = false;
+        }
+      }
+      m = "Site " + std::to_string(site) + " block " + std::to_string(blk_key) +
+          ": blk_coors within sector counts";
+      CHECK(bounds_ok, m.c_str());
+
+      if (!coors_ok || !bounds_ok) {
+        std::cerr << "  skipping CalcDiv for invalid block " << blk_key
+                  << std::endl;
+        continue;
+      }
+
+      const QNT block_div = qlten::CalcDiv(indexes, data_blk.blk_coors);
+      valid_blocks++;
+
+      if (!first_valid) {
+        reference_div = block_div;
+        first_valid = true;
+      } else {
+        m = "Site " + std::to_string(site) + " block " + std::to_string(blk_key) +
+            ": divergence == reference divergence";
+        CHECK(block_div == reference_div, m.c_str());
+      }
+
+      const QNT expected_div = (site == 0) ? total_qn : zero_qn;
+      m = "Site " + std::to_string(site) + " block " + std::to_string(blk_key) +
+          ": divergence == expected site divergence";
+      CHECK(block_div == expected_div, m.c_str());
+    }
+
+    m = "Site " + std::to_string(site) + ": at least one valid block";
+    CHECK(valid_blocks > 0, m.c_str());
+  }
+
+  CHECK(failures == failures_before_75, "Per-tensor QN conservation");
 
   std::cout << "\n=== Summary ===" << std::endl;
   std::cout << "params: N=4, eps=" << eps << ", swap=(" << swap_s1 << ","
