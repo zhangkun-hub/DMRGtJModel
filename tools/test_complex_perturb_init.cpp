@@ -5,21 +5,31 @@
 //   icpc -std=c++17 -I${HOME}/.local/include -I../src \
 //       -DUSE_COMPLEX=1 -DSYM_LEVEL=1 \
 //       -o /tmp/test_perturb test_complex_perturb_init.cpp \
-//       -L${HOME}/.local/lib -lhptt -L<mkl> -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core \
-//       (link flags must match the production Intel environment; run under /tmp)
+//       (link via CMakeFiles/dmrg.dir/link.txt with the object swapped)
 //
 // Test data: N=4, a={0,1,0,1}, b={0,0,1,1}
 // Swap at sites 1,2: a[1]=1(dn)->0(up), a[2]=0(up)->1(dn)
 //
 // Run modes:
-//   (no args)      — single fixed test: N=4, eps=0.1, amp_a=1/sqrt(1+eps^2)
-//   eps=<v>        — same, with given eps (e.g. 0.05, 1.0, 1e200)
-//   swap=s1,s2     — choose which sites to swap (default 1,2) to test
-//                    QN restoration for a different pair location.
+//   (no args)      — single fixed test: N=4, eps=0.1
+//   eps=<value>    — same, with given eps (must be finite and > 0)
+//   swap=s1,s2     — choose which sites to swap (must be <4, s1<s2, and
+//                    carry opposite spins in the a configuration)
 //
-// Physical-basis note: label mapping (0=up,1=dn,2=hole) is NOT verified here;
-// it only matters that a and b are in the same total-QN sector, which the
-// constructor asserts. Basis-order verification is a separate cluster task.
+// Tolerances (per-quantity, NOT scaled with eps):
+//   norm_tol      = 1e-10   absolute, normalization
+//   ratio_rtol    = 1e-10   relative, ||r|/eps - 1| <= ratio_rtol
+//   phase_tol     = 1e-10   absolute, radians
+//   extra_amp_tol = 1e-10   absolute, stray-configuration amplitude
+//
+// Physical-basis note: label mapping (0=up,1=dn,2=hole) was verified on the
+// cluster (qlmps tJ_sites.h: spin_up=0, spin_down=1, empty=2).
+//
+// Numerically reliable epsilon range: 1e-150 <= eps <= 1e300. Outside this
+// range the checks may hit double-representation limits rather than exposing
+// construction errors: sqrt(2)*hypot(1,eps) overflows for eps > ~1.27e308,
+// and the ratio phase degrades through subnormal noise for eps below ~1e-311.
+// All default and planned stress points (0.05, 0.1, 1.0, 1e200) are inside.
 
 #include "qlmps/qlmps.h"
 #include "qlten/qlten.h"
@@ -33,6 +43,7 @@
 #include <vector>
 #include <string>
 #include <cstdlib>
+#include <cerrno>
 
 using namespace qlmps;
 using namespace qlten;
@@ -49,6 +60,15 @@ void CHECK(bool cond, const char *msg) {
 }
 
 void CHECK_CLOSE(double a, double b, double tol, const char *msg) {
+  // Reject non-finite inputs BEFORE comparing: NaN comparisons are always
+  // false and would otherwise produce a fake PASS.
+  if (!std::isfinite(a) || !std::isfinite(b) ||
+      !std::isfinite(tol) || tol < 0.0) {
+    std::cerr << "FAIL: " << msg << " (non-finite or invalid: a=" << a
+              << ", b=" << b << ", tol=" << tol << ")" << std::endl;
+    failures++;
+    return;
+  }
   if (std::abs(a - b) > tol) {
     std::cerr << "FAIL: " << msg << " (got " << a << ", expected " << b
               << ", diff " << std::abs(a - b) << ")" << std::endl;
@@ -101,24 +121,78 @@ int main(int argc, char *argv[]) {
   double eps = 0.1;
   size_t swap_s1 = 1, swap_s2 = 2;
 
+  // ---- Input validation: eps must be finite and strictly positive ----
+  // ---- swap must be two distinct in-range sites with opposite spins ----
   for (int i = 1; i < argc; ++i) {
     std::string arg(argv[i]);
     if (arg.rfind("eps=", 0) == 0) {
-      eps = std::stod(arg.substr(4));
+      std::string v = arg.substr(4);
+      if (v.empty()) {
+        std::cerr << "[error] eps value is empty" << std::endl;
+        return 2;
+      }
+      char *end = nullptr;
+      errno = 0;
+      double parsed = std::strtod(v.c_str(), &end);
+      if (end == v.c_str() || *end != '\0') {
+        std::cerr << "[error] cannot parse eps: '" << v << "'" << std::endl;
+        return 2;
+      }
+      if (errno == ERANGE) {
+        std::cerr << "[error] eps out of range: '" << v << "'" << std::endl;
+        return 2;
+      }
+      if (!std::isfinite(parsed) || parsed <= 0.0) {
+        std::cerr << "[error] eps must be finite and strictly positive, got: '"
+                  << v << "'" << std::endl;
+        return 2;
+      }
+      eps = parsed;
     } else if (arg.rfind("swap=", 0) == 0) {
       std::string pair = arg.substr(5);
       auto comma = pair.find(',');
-      swap_s1 = std::stoul(pair.substr(0, comma));
-      swap_s2 = std::stoul(pair.substr(comma + 1));
+      if (comma == std::string::npos) {
+        std::cerr << "[error] swap expects 's1,s2': '" << pair << "'" << std::endl;
+        return 2;
+      }
+      std::string v1 = pair.substr(0, comma);
+      std::string v2 = pair.substr(comma + 1);
+      char *end1 = nullptr, *end2 = nullptr;
+      errno = 0;
+      unsigned long p1 = std::strtoul(v1.c_str(), &end1, 10);
+      if (end1 == v1.c_str() || *end1 != '\0' || errno == ERANGE) {
+        std::cerr << "[error] cannot parse swap site 1: '" << v1 << "'" << std::endl;
+        return 2;
+      }
+      errno = 0;
+      unsigned long p2 = std::strtoul(v2.c_str(), &end2, 10);
+      if (end2 == v2.c_str() || *end2 != '\0' || errno == ERANGE) {
+        std::cerr << "[error] cannot parse swap site 2: '" << v2 << "'" << std::endl;
+        return 2;
+      }
+      if (p1 >= N || p2 >= N) {
+        std::cerr << "[error] swap sites must be < N=4, got (" << p1 << ","
+                  << p2 << ")" << std::endl;
+        return 2;
+      }
+      if (p1 == p2 || p1 > p2) {
+        std::cerr << "[error] swap sites must satisfy s1 < s2 and s1 != s2, got ("
+                  << p1 << "," << p2 << ")" << std::endl;
+        return 2;
+      }
+      swap_s1 = p1;
+      swap_s2 = p2;
     } else {
       std::cerr << "Unknown arg: " << arg << std::endl;
       return 2;
     }
   }
 
-  // Relative tolerance: for huge eps the small-amplitude lane is near machine
-  // precision relative to the dominant one; scale tolerance by eps accordingly.
-  const double tol = 1e-10 * (1.0 + eps);
+  // ---- Per-quantity tolerances (NOT scaled with eps) ----
+  const double norm_tol = 1e-10;
+  const double ratio_rtol = 1e-10;
+  const double phase_tol = 1e-10;
+  const double extra_amp_tol = 1e-10;
 
   // Setup site vector
   const SiteVec<TenElemT, QNT> sites = tj_site.GenUniformSites<TenElemT>(N);
@@ -126,6 +200,11 @@ int main(int argc, char *argv[]) {
 
   // Test configurations: swap (s1,s2) on a={0,1,0,1}.
   std::vector<size_t> a_labs = {0, 1, 0, 1};  // up, dn, up, dn
+  if (a_labs[swap_s1] == a_labs[swap_s2]) {
+    std::cerr << "[error] swap sites (" << swap_s1 << "," << swap_s2
+              << ") do not carry opposite spins in a={0,1,0,1}" << std::endl;
+    return 2;
+  }
   std::vector<size_t> b_labs = a_labs;
   std::swap(b_labs[swap_s1], b_labs[swap_s2]);
 
@@ -148,7 +227,8 @@ int main(int argc, char *argv[]) {
 
   std::cout << "=== Section 7.1: Sector Structure ===" << std::endl;
 
-  // Check each cut: both lanes exist as 2 dim-1 sectors.
+  // Check each cut: 2 sectors, each dim 1, QN same/different per prefix QN
+  // derivation (same outside the swap pair, different inside).
   for (size_t i = 0; i < N - 1; ++i) {
     auto idx = mps[i].GetIndexes()[2];  // right virtual index
     size_t num_scts = idx.GetQNSctNum();
@@ -162,10 +242,7 @@ int main(int argc, char *argv[]) {
           "each sector has dim 1");
 
     bool same = (qn0 == qn1);
-    // QN per lane at cut after site i is equal iff a and b agree on all
-    // labels up to site i, i.e. iff the swap pair is entirely before or
-    // entirely after the cut. With swap at (s1,s2):
-    //   cut i+1 is "inside" the pair iff s1 < i+1 <= s2  (prefix differs).
+    // Prefix differs iff the cut lies inside the swap pair (s1 < i+1 <= s2).
     bool prefix_differs = (i + 1 > swap_s1) && (i + 1 <= swap_s2);
     if (prefix_differs) {
       CHECK(!same, "cut inside swap pair: QNs differ");
@@ -179,40 +256,81 @@ int main(int argc, char *argv[]) {
   TenElemT overlap_a = ComputeOverlap(mps, a_labs, N);
   TenElemT overlap_b = ComputeOverlap(mps, b_labs, N);
 
-  double norm_sq = std::norm(overlap_a) + std::norm(overlap_b);
-  CHECK_CLOSE(norm_sq, 1.0, tol, "<a|psi>^2 + <b|psi>^2 = 1");
+  bool overlaps_finite = std::isfinite(std::abs(overlap_a)) &&
+                         std::isfinite(std::abs(overlap_b));
+  CHECK(overlaps_finite, "<a|psi> and <b|psi> both finite");
+  if (overlaps_finite) {
+    double norm_sq = std::norm(overlap_a) + std::norm(overlap_b);
+    CHECK_CLOSE(norm_sq, 1.0, norm_tol, "<a|psi>^2 + <b|psi>^2 = 1");
+  }
 
   std::cout << "\n=== Section 7.3: Complex Amplitude Ratio ===" << std::endl;
 
-  TenElemT ratio = overlap_b / overlap_a;
-  double ratio_mag = std::abs(ratio);
-  double ratio_phase = std::arg(ratio);
+  if (overlaps_finite) {
+    TenElemT ratio = overlap_b / overlap_a;
+    double ratio_mag = std::abs(ratio);
+    double ratio_phase = std::arg(ratio);
 
-  CHECK_CLOSE(ratio_mag, eps, tol, "|<b|psi>/<a|psi>| = eps");
-  CHECK_CLOSE(ratio_phase, M_PI / 4.0, tol, "arg(<b|psi>/<a|psi>) = +pi/4");
+    // True relative check: | |r|/eps - 1 | <= ratio_rtol. eps > 0 is ensured
+    // by input validation. (A max(1,eps)-scaled absolute form would degrade
+    // to an absolute tolerance for eps < 1 and could let a wrong small
+    // amplitude ratio pass.)
+    double ratio_relative = ratio_mag / eps;
+    CHECK_CLOSE(ratio_relative, 1.0, ratio_rtol,
+                "relative amplitude ratio |r|/eps = 1");
+    CHECK_CLOSE(ratio_phase, M_PI / 4.0, phase_tol,
+                "arg(<b|psi>/<a|psi>) = +pi/4");
 
-  TenElemT inv_ratio = overlap_a / overlap_b;
-  double inv_phase = std::arg(inv_ratio);
-  CHECK_CLOSE(inv_phase, -M_PI / 4.0, tol, "arg(<a|psi>/<b|psi>) = -pi/4");
+    // For tiny eps the inverse ratio can exceed double range; its argument is
+    // only meaningful when the value itself is finite. Non-finite is a FAIL,
+    // never a silent pass.
+    TenElemT inv_ratio = overlap_a / overlap_b;
+    bool inv_finite = std::isfinite(std::abs(inv_ratio));
+    CHECK(inv_finite, "inverse ratio <a|psi>/<b|psi> is finite");
+    if (inv_finite) {
+      double inv_phase = std::arg(inv_ratio);
+      CHECK_CLOSE(inv_phase, -M_PI / 4.0, phase_tol,
+                  "arg(<a|psi>/<b|psi>) = -pi/4");
+    }
+  } else {
+    std::cerr << "SKIPPED ratio checks: overlaps not finite" << std::endl;
+  }
 
   std::cout << "\n=== Section 7.4: No Extra Configurations ===" << std::endl;
+  std::cout << "entering 81-configuration scan (any abort below pins the config)" << std::endl;
 
   // Check all 3^4 = 81 configurations (0,1,2 per site)
   size_t extra_count = 0;
+  size_t scanned = 0;
   for (size_t c0 = 0; c0 < 3; ++c0)
   for (size_t c1 = 0; c1 < 3; ++c1)
   for (size_t c2 = 0; c2 < 3; ++c2)
   for (size_t c3 = 0; c3 < 3; ++c3) {
     std::vector<size_t> cfg = {c0, c1, c2, c3};
-    if (cfg == a_labs || cfg == b_labs) continue;
+    std::cout << "config {" << c0 << "," << c1 << "," << c2 << "," << c3
+              << "}: ";
+    if (cfg == a_labs || cfg == b_labs) {
+      std::cout << "expected lane, skip" << std::endl;
+      continue;
+    }
     TenElemT ov = ComputeOverlap(mps, cfg, N);
-    if (std::abs(ov) > tol) {
+    scanned++;
+    if (!std::isfinite(std::abs(ov))) {
+      // Non-finite must be counted as FAIL, never as zero amplitude.
+      std::cerr << "  FAIL: non-finite overlap for config {"
+                << c0 << "," << c1 << "," << c2 << "," << c3 << "}: " << ov
+                << std::endl;
+      failures++;
+    } else if (std::abs(ov) > extra_amp_tol) {
       std::cerr << "  Non-zero overlap with config {"
                 << c0 << "," << c1 << "," << c2 << "," << c3
                 << "}: " << ov << std::endl;
       extra_count++;
+    } else {
+      std::cout << "zero (ok)" << std::endl;
     }
   }
+  std::cout << "scan complete (" << scanned << " non-lane configs checked)" << std::endl;
   CHECK(extra_count == 0, "No extra configuration amplitudes");
 
   std::cout << "\n=== Section 7.5: Per-Tensor QN Conservation ===" << std::endl;
